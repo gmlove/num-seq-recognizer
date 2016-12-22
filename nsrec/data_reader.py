@@ -3,7 +3,7 @@ import h5py
 from nsrec.models import BBox, Data
 
 
-def data_generator(file_path):
+def metadata_generator(file_path):
   f = h5py.File(file_path)
   refs, ds = f['#refs#'], f['digitStruct']
 

@@ -1,11 +1,11 @@
 import tensorflow as tf
-from nsrec.data_reader import data_generator
+from nsrec.data_reader import metadata_generator
 from nsrec.models import Data, BBox
 
 class DataReaderTest(tf.test.TestCase):
 
-  def test_data_generator(self):
-    gen = data_generator('../data/train/digitStruct.mat')
+  def test_meta_data_generator(self):
+    gen = metadata_generator('../data/train/digitStruct.mat')
     first_data = gen.__next__()
     self.assertIsInstance(first_data, Data)
     print(first_data)
