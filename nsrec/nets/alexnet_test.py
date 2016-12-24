@@ -1,5 +1,5 @@
 import tensorflow as tf
-from nsrec.models import alexnet
+from nsrec.nets import alexnet
 
 class AlexnetTest(tf.test.TestCase):
 
