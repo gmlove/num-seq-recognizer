@@ -3,6 +3,8 @@ from tensorflow.contrib import slim
 
 trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
+default_scope_name = 'alexnet_v2'
+
 def cnn_layers(inputs, scope, end_points_collection):
   # Collect outputs for conv2d and max_pool2d.
   with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
@@ -22,7 +24,7 @@ def cnn_layers(inputs, scope, end_points_collection):
 
 def variable_scope(values=None, name_or_scope=None, **kwargs):
   values = values if isinstance(values, (tuple, list)) else [values]
-  kwargs.update({'values': values, 'default_name': 'alexnet_v2'})
+  kwargs.update({'values': values, 'default_name': default_scope_name})
   return tf.variable_scope(name_or_scope, **kwargs)
 
 def end_points_collection_name(variable_scope):
