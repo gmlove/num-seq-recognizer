@@ -5,10 +5,17 @@ def objeq(obj1, obj2, attr):
 
   return all([getattr(obj1, name) == getattr(obj2, name) for name in attr])
 
+def _objstr(obj):
+  if isinstance(obj, (list, tuple)):
+    to_format = '[%s]' if isinstance(obj, list) else '(%s)'
+    return to_format % ', '.join(['%s' % i for i in obj])
+  else:
+    return '%s' % obj
+
 def objstr(obj):
   clsname = obj.__class__.__name__
   attrs = obj.__class__.attrs
-  return '%s(%s)' % (clsname, ', '.join(['%s=%s'%(attr, getattr(obj, attr)) for attr in attrs]))
+  return '%s(%s)' % (clsname, ', '.join(['%s=%s'%(attr, _objstr(getattr(obj, attr))) for attr in attrs]))
 
 class ModelBase():
   attrs = []
@@ -25,6 +32,9 @@ class BBox(ModelBase):
 
   def __init__(self, label, top, left, width, height):
     self.label = str(int(label))
+    self.label = '0' if self.label == '10' else self.label
+
+    assert len(self.label) == 1
 
     self.left = left
     self.top = top
@@ -43,3 +53,5 @@ class Data(ModelBase):
 if __name__ == '__main__':
   assert Data('1', [BBox('1', 1, 1, 1, 1), BBox('2', 2, 2, 2, 2)]) == Data('1', [BBox('1', 1, 1, 1, 1), BBox('2', 2, 2, 2, 2)])
   assert BBox('0', 1, 2, 3, 4).__str__() == 'BBox(label=0, top=1, left=2, width=3, height=4)'
+  assert (Data('1', [BBox('1', 1, 1, 1, 1), BBox('2', 2, 2, 2, 2)]).__str__()) == \
+         'Data(filename=1, bboxes=[BBox(label=1, top=1, left=1, width=1, height=1), BBox(label=2, top=2, left=2, width=2, height=2)], label=12)'
