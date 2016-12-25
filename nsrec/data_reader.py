@@ -13,7 +13,9 @@ def metadata_generator(file_path):
     bboxes_raw = refs[ds['bbox'][i][0]]
     bboxes_count = bboxes_raw['label'].value.shape[0]
     for j in range(bboxes_count):
-      attr_value = lambda attr_name: refs[bboxes_raw[attr_name].value[j][0]].value.reshape(-1)[0]
+      real_value = lambda ref_or_real_value: refs[ref_or_real_value].value.reshape(-1)[0] \
+        if isinstance(ref_or_real_value, h5py.h5r.Reference) else ref_or_real_value
+      attr_value = lambda attr_name: real_value(bboxes_raw[attr_name].value[j][0])
       bboxes.append(BBox(*[attr_value(an) for an in attr_names]))
     return bboxes
 
