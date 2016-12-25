@@ -8,8 +8,8 @@ from nsrec.models import Data, BBox
 class DataReaderTest(tf.test.TestCase):
 
   @classmethod
-  def createTestData(cls, test_data_count):
-    test_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+  def createTestData(cls, test_data_count, test_dir_path=None):
+    test_dir_path = test_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
     test_f = h5py.File(metadata_file, 'w')
 
@@ -54,8 +54,9 @@ class DataReaderTest(tf.test.TestCase):
     create_t_element(t_ds, 'name', ds, test_data_count)
     create_t_element(t_ds, 'bbox', ds, test_data_count)
     test_f.close()
+    return metadata_file
 
-  def test_create_meta_data_file_for_testing(self):
+  def test_create_metadata_file_for_testing(self):
     DataReaderTest.createTestData(25)
 
     data_pack = []
@@ -66,7 +67,7 @@ class DataReaderTest(tf.test.TestCase):
     self.assertEqual(data_pack[24].label, '601')
     self.assertEqual(data_pack[24].filename, '25.png')
 
-  def test_meta_data_generator(self):
+  def test_metadata_generator(self):
     gen = metadata_generator('../data/train/digitStruct.mat')
     sampled = [gen.__next__() for i in range(30)]
 
