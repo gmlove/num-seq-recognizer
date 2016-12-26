@@ -3,8 +3,30 @@ import os
 import tensorflow as tf
 from nsrec import data_preprocessor
 
-def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, size, num_preprocess_threads=1):
-  def input_data_generator():
+
+def batches(data_generator_fn, max_number_length, batch_size, size, num_preprocess_threads=1):
+  filenames, length_labels, numbers_labels = data_generator_fn()
+
+  filename_queue = tf.train.string_input_producer(
+    filenames, shuffle=False, capacity=batch_size * 3)
+  length_label_queue = tf.train.input_producer(
+    length_labels, shuffle=False, element_shape=(max_number_length, ), capacity=batch_size * 3)
+  numbers_label_queue = tf.train.input_producer(
+    numbers_labels, shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
+
+  reader = tf.WholeFileReader()
+  _, dequeued_record_string = reader.read(filename_queue)
+  dequeued_img = tf.image.decode_png(dequeued_record_string, 3)
+  dequeued_img = tf.image.resize_images(dequeued_img, size)
+
+  return tf.train.batch(
+    [dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()],
+    batch_size=batch_size, capacity=batch_size * 3)
+
+
+def mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
+
+  def handler():
     filenames, length_labels, numbers_labels = [], [], []
     metadata = data_preprocessor.metadata_generator(metadata_file_path)
 
@@ -27,21 +49,4 @@ def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, si
         tf.logging.info('readed %s records', read_count)
     return filenames, length_labels, numbers_labels
 
-  filenames, length_labels, numbers_labels = input_data_generator()
-
-  filename_queue = tf.train.string_input_producer(
-    filenames, shuffle=False, capacity=batch_size * 3)
-  length_label_queue = tf.train.input_producer(
-    length_labels, shuffle=False, element_shape=(max_number_length, ), capacity=batch_size * 3)
-  numbers_label_queue = tf.train.input_producer(
-    numbers_labels, shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
-
-  reader = tf.WholeFileReader()
-  _, dequeued_record_string = reader.read(filename_queue)
-  dequeued_img = tf.image.decode_png(dequeued_record_string, 3)
-  dequeued_img = tf.image.resize_images(dequeued_img, size)
-
-  return tf.train.batch(
-    [dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()],
-    batch_size=batch_size, capacity=batch_size * 3)
-
+  return handler

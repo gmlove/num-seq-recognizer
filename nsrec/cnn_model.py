@@ -46,9 +46,10 @@ class CNNTrainModel(CNNModelBase):
 
   def __init__(self, config):
     self.config = config
+
+    metadata_handler = inputs.mat_metadata_handler(config.metadata_file_path, config.max_number_length, config.data_dir_path)
     self.data_batches, self.length_label_batches, self.numbers_label_batches = \
-      inputs.batches(config.metadata_file_path, config.data_dir_path,
-                    config.max_number_length, config.batch_size, config.size)
+      inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size)
     self.total_loss = None
     self.global_step = None
 
