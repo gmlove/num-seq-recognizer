@@ -11,9 +11,9 @@ class CNNModelTest(tf.test.TestCase):
     metadata_file_path = DataReaderTest.createTestData(25, metadata_dir_path)
     config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
 
-    with self.test_session() as sess:
+    with self.test_session():
       model = CNNTrainModel(config)
-      model.build(sess)
+      model.build()
 
       train_op = tf.contrib.layers.optimize_loss(
         loss=model.total_loss, global_step=model.global_step,

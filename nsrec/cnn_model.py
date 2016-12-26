@@ -8,11 +8,13 @@ from nsrec.nets import alexnet
 class CNNModelConfig(object):
 
   def __init__(self, **kwargs):
-    self.data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.data_dir_path = os.path.join(current_dir, '../data/train')
     self.metadata_file_path = os.path.join(self.data_dir_path, 'digitStruct.mat')
     self.max_number_length = 5
     self.batch_size = 64
     self.size = [alexnet.image_height, alexnet.image_width]
+    self.train_dir = os.path.join(current_dir, '../output')
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length', 'batch_size', 'size']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
@@ -25,8 +27,7 @@ class CNNModelBase:
     self.variables = None
     self.data_batches = None
 
-  def _build_base_net(self, sess):
-    sess.as_default()
+  def _build_base_net(self):
     with alexnet.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection = alexnet.end_points_collection_name(variable_scope)
       net, _ = alexnet.cnn_layers(self.data_batches, variable_scope, end_points_collection)
@@ -52,8 +53,8 @@ class CNNTrainModel(CNNModelBase):
     self.total_loss = None
     self.global_step = None
 
-  def build(self, sess):
-    length_output, numbers_output = self._build_base_net(sess)
+  def build(self):
+    length_output, numbers_output = self._build_base_net()
     length_loss = tf.nn.softmax_cross_entropy_with_logits(length_output, self.length_label_batches)
     tf.contrib.losses.add_loss(tf.log(tf.reduce_mean(length_loss), 'length_loss'))
     for i in range(self.config.max_number_length):
