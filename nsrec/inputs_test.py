@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 from nsrec import inputs
 from nsrec.data_preprocessor_test import DataReaderTest
+from nsrec.np_ops import one_hot
 
 
 class InputTest(tf.test.TestCase):
@@ -40,7 +41,6 @@ class InputTest(tf.test.TestCase):
         batches.append(sess.run([data_batches, length_label_batches, numbers_label_batches]))
 
       db, llb, nlb = batches[0]
-      one_hot = lambda num, max_num: np.eye(max_num)[num - 1]
       self.assertAllEqual(llb, one_hot(np.array([2, 2]), max_number_length))
       self.assertNDArrayNear(nlb[0], np.concatenate([
         one_hot(np.array([1, 9]) + 1, 10), np.array([[0.1] * 10] * 3)
@@ -49,3 +49,12 @@ class InputTest(tf.test.TestCase):
       coord.request_stop()
       coord.join(threads)
       sess.close()
+
+  def test_read_whole_train_metadata(self):
+    max_number_length, batch_size, size = 5, 64, (64, 64)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    metadata_file_path = os.path.join(current_dir, '../data/train/metadata.pickle')
+    data_dir_path = os.path.join(current_dir, '../data/train')
+    metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
+    filenames, length_labels, numbers_labels = metadata_handler()
