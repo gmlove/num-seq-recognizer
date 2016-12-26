@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 
 from nsrec import inputs
-from nsrec.nets import alexnet
+from nsrec.nets import lenet as cnn_net
 
 
 class CNNModelConfig(object):
@@ -13,7 +13,7 @@ class CNNModelConfig(object):
     self.metadata_file_path = os.path.join(self.data_dir_path, 'digitStruct.mat')
     self.max_number_length = 5
     self.batch_size = 64
-    self.size = [alexnet.image_height, alexnet.image_width]
+    self.size = [cnn_net.image_height, cnn_net.image_width]
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length', 'batch_size', 'size']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
@@ -27,15 +27,15 @@ class CNNModelBase:
     self.data_batches = None
 
   def _build_base_net(self):
-    with alexnet.variable_scope([self.data_batches]) as variable_scope:
-      end_points_collection = alexnet.end_points_collection_name(variable_scope)
-      net, _ = alexnet.cnn_layers(self.data_batches, variable_scope, end_points_collection)
-      length_output, _ = alexnet.fc_layers(net, variable_scope, end_points_collection,
+    with cnn_net.variable_scope([self.data_batches]) as variable_scope:
+      end_points_collection = cnn_net.end_points_collection_name(variable_scope)
+      net, _ = cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection)
+      length_output, _ = cnn_net.fc_layers(net, variable_scope, end_points_collection,
                                            num_classes=self.config.max_number_length,
                                            name_prefix='length')
       numbers_output = []
       for i in range(self.config.max_number_length):
-        number_output, _ = alexnet.fc_layers(net, variable_scope, end_points_collection,
+        number_output, _ = cnn_net.fc_layers(net, variable_scope, end_points_collection,
                                              num_classes=10, name_prefix='number%s' % (i + 1))
         numbers_output.append(number_output)
 
