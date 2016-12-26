@@ -7,7 +7,10 @@ def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, si
   def input_data_generator():
     filenames, length_labels, numbers_labels = [], [], []
     metadata = data_reader.metadata_generator(metadata_file_path)
+
+    read_count = 0
     for data in metadata:
+      read_count += 1
       if len(data.label) > max_number_length:
         tf.logging.info('ignore data since label is too long: filename=%s, label=%s' % (data.filename, data.label))
         continue
@@ -19,6 +22,9 @@ def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, si
         numbers_labels.append(tf.concat(0, [numbers_one_hot, no_number_one_hot]))
       else:
         numbers_labels.append(numbers_one_hot)
+
+      if read_count % 1000 == 0:
+        tf.logging.info('readed %s records', read_count)
     return filenames, length_labels, numbers_labels
 
   filenames, length_labels, numbers_labels = input_data_generator()
