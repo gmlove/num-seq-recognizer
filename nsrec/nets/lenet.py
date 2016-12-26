@@ -4,7 +4,7 @@ from tensorflow.contrib import slim
 from nsrec.nets import variable_scope_fn, end_points_collection_name
 
 default_scope_name = 'lenet'
-image_height, image_width = 28, 28
+image_height, image_width = 64, 64
 variable_scope = variable_scope_fn(default_scope_name)
 
 
