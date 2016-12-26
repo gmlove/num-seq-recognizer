@@ -57,6 +57,41 @@ class AlexnetTest(tf.test.TestCase):
       self.assertSetEqual(set(filter(lambda x: x.find('_fc') != -1, end_points.keys())),
                           set(expected_names))
 
+  def _checkOutputs(self, expected_shapes, feed_dict=None):
+    """Verifies that the model produces expected outputs.
+
+    Args:
+      expected_shapes: A dict mapping Tensor or Tensor name to expected output
+        shape.
+      feed_dict: Values of Tensors to feed into Session.run().
+    """
+    fetches = list(expected_shapes.keys())
+
+    with self.test_session() as sess:
+      sess.run(tf.global_variables_initializer())
+      outputs = sess.run(fetches, feed_dict)
+
+    for index, output in enumerate(outputs):
+      tensor = fetches[index]
+      expected = expected_shapes[tensor]
+      actual = output.shape
+      if expected != actual:
+        self.fail("Tensor %s has shape %s (expected %s)." %
+                  (tensor, actual, expected))
+
+  def test_network_output(self):
+    batch_size, height, width, channels = 5, 224, 224, 3
+    with self.test_session():
+      inputs = tf.random_uniform((batch_size, height, width, channels))
+      with alexnet.variable_scope([inputs]) as variable_scope:
+        end_points_collection = alexnet.end_points_collection_name(variable_scope)
+        net, _ = alexnet.cnn_layers(inputs, variable_scope, end_points_collection)
+        output, _ = alexnet.fc_layers(net, variable_scope, end_points_collection, num_classes=10)
+
+        self._checkOutputs({
+          output: (5, 10),
+        })
+
 
 if __name__ == '__main__':
   tf.test.main()

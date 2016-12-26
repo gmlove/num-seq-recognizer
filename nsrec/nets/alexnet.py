@@ -4,6 +4,7 @@ from tensorflow.contrib import slim
 trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
 default_scope_name = 'alexnet_v2'
+image_height, image_width = 224, 224
 
 def cnn_layers(inputs, scope, end_points_collection):
   # Collect outputs for conv2d and max_pool2d.
