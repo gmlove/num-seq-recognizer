@@ -30,8 +30,8 @@ def metadata_generator(file_path):
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.flags.DEFINE_string("metadata_file_path", "",
-                       "Metadata file path.")
+tf.flags.DEFINE_string("mat_metadata_file_path", "",
+                       "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
 tf.flags.DEFINE_integer("max_numbers_length", 5,
@@ -39,10 +39,10 @@ tf.flags.DEFINE_integer("max_numbers_length", 5,
 
 
 def main(args):
-  assert FLAGS.metadata_file_path, "Metadata file path required"
+  assert FLAGS.mat_metadata_file_path, "Mat format metadata file path required"
   assert FLAGS.output_file_path, "Output file path required"
 
-  metadata = metadata_generator(FLAGS.metadata_file_path)
+  metadata = metadata_generator(FLAGS.mat_metadata_file_path)
   filenames, labels = [], []
   for i, md in enumerate(metadata):
     if len(md.label) > FLAGS.max_numbers_length:
