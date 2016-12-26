@@ -1,6 +1,7 @@
 data/
 logs/
 output/
+nsrec/test_data
 */__pycache__
 *.pyc
 *.iml
