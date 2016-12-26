@@ -3,16 +3,22 @@ import os
 import tensorflow as tf
 from nsrec import data_reader
 
-def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, size):
+def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, size, num_preprocess_threads=1):
   def input_data_generator():
     filenames, length_labels, numbers_labels = [], [], []
     metadata = data_reader.metadata_generator(metadata_file_path)
     for data in metadata:
+      if len(data.label) > max_number_length:
+        tf.logging.info('ignore data since label is too long: filename=%s, label=%s' % (data.filename, data.label))
+        continue
       numbers_one_hot = [tf.one_hot(ord(ch) - ord('0'), 10) for ch in data.label]
       no_number_one_hot = tf.constant([[0.1] * 10] * (max_number_length - len(data.label)))
       filenames.append(os.path.join(data_dir_path, data.filename))
       length_labels.append(tf.one_hot(len(data.label) - 1, max_number_length))
-      numbers_labels.append(tf.concat(0, [numbers_one_hot, no_number_one_hot]))
+      if len(data.label) < max_number_length:
+        numbers_labels.append(tf.concat(0, [numbers_one_hot, no_number_one_hot]))
+      else:
+        numbers_labels.append(numbers_one_hot)
     return filenames, length_labels, numbers_labels
 
   filenames, length_labels, numbers_labels = input_data_generator()
