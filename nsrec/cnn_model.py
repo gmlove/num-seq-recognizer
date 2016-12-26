@@ -14,8 +14,10 @@ class CNNModelConfig(object):
     self.max_number_length = 5
     self.batch_size = 64
     self.size = [cnn_net.image_height, cnn_net.image_width]
+    self.create_metadata_handler_fn = inputs.create_mat_metadata_handler
 
-    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length', 'batch_size', 'size']:
+    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
+                 'batch_size', 'size', 'create_metadata_handler_fn']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
 
@@ -47,7 +49,7 @@ class CNNTrainModel(CNNModelBase):
   def __init__(self, config):
     self.config = config
 
-    metadata_handler = inputs.mat_metadata_handler(config.metadata_file_path, config.max_number_length, config.data_dir_path)
+    metadata_handler = config.create_metadata_handler_fn(config.metadata_file_path, config.max_number_length, config.data_dir_path)
     self.data_batches, self.length_label_batches, self.numbers_label_batches = \
       inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size)
     self.total_loss = None

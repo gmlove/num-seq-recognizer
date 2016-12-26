@@ -19,6 +19,7 @@ class DataReaderTest(tf.test.TestCase):
 
     metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
     pickle.dump({'filenames': filenames, 'labels': labels}, open(metadata_file, 'wb'))
+
     return metadata_file
 
   @classmethod

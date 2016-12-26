@@ -11,13 +11,13 @@ class InputTest(tf.test.TestCase):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = DataReaderTest.createTestMatMetadata(25, metadata_dir_path)
 
-    self._test_batches(metadata_file_path, inputs.mat_metadata_handler)
+    self._test_batches(metadata_file_path, inputs.create_mat_metadata_handler)
 
   def test_batches_from_pickle(self):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
 
-    self._test_batches(metadata_file_path, inputs.pickle_metadata_handler)
+    self._test_batches(metadata_file_path, inputs.create_pickle_metadata_handler)
 
   def _test_batches(self, metadata_file_path, metadata_handler_fn):
     data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')

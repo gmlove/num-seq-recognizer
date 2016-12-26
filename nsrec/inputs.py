@@ -25,7 +25,7 @@ def batches(data_generator_fn, max_number_length, batch_size, size, num_preproce
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
+def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
 
   def handler():
     filenames, length_labels, numbers_labels = [], [], []
@@ -63,7 +63,7 @@ def _to_data(filename, label, max_number_length, data_dir_path):
   return filename, length_label, numbers_label
 
 
-def pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
+def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
 
   def handler():
     filenames, length_labels, numbers_labels = [], [], []
