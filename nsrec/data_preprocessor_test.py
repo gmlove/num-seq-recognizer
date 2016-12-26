@@ -2,7 +2,7 @@ import os
 
 import h5py
 import tensorflow as tf
-from nsrec.data_reader import metadata_generator
+from nsrec.data_preprocessor import metadata_generator
 from nsrec.models import Data, BBox
 
 class DataReaderTest(tf.test.TestCase):

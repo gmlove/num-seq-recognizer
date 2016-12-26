@@ -1,12 +1,12 @@
 import os
 
 import tensorflow as tf
-from nsrec import data_reader
+from nsrec import data_preprocessor
 
 def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, size, num_preprocess_threads=1):
   def input_data_generator():
     filenames, length_labels, numbers_labels = [], [], []
-    metadata = data_reader.metadata_generator(metadata_file_path)
+    metadata = data_preprocessor.metadata_generator(metadata_file_path)
 
     read_count = 0
     for data in metadata:
@@ -44,3 +44,4 @@ def batches(metadata_file_path, data_dir_path, max_number_length, batch_size, si
   return tf.train.batch(
     [dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()],
     batch_size=batch_size, capacity=batch_size * 3)
+

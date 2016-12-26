@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from nsrec import inputs
-from nsrec.data_reader_test import DataReaderTest
+from nsrec.data_preprocessor_test import DataReaderTest
 
 
 class InputTest(tf.test.TestCase):
@@ -12,11 +12,11 @@ class InputTest(tf.test.TestCase):
     data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
     metadata_file_path = DataReaderTest.createTestData(25, metadata_dir_path)
 
-    max_number_length, batch_size, size = 5, 2, (128, 128)
+    max_number_length, batch_size, size = 5, 2, (28, 28)
     with self.test_session() as sess:
       data_batches, length_label_batches, numbers_label_batches = \
         inputs.batches(metadata_file_path, data_dir_path, max_number_length, batch_size, size)
-      self.assertEqual(data_batches.get_shape(), (2, 128, 128, 3))
+      self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
       self.assertEqual(length_label_batches.get_shape(), (2, max_number_length))
       self.assertEqual(numbers_label_batches.get_shape(), (2, max_number_length, 10))
 
