@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+from tensorflow.python.framework import ops
 
 from nsrec import inputs
 from nsrec.nets import lenet as cnn_net
@@ -49,20 +50,35 @@ class CNNTrainModel(CNNModelBase):
   def __init__(self, config):
     self.config = config
 
-    metadata_handler = config.create_metadata_handler_fn(config.metadata_file_path, config.max_number_length, config.data_dir_path)
-    self.data_batches, self.length_label_batches, self.numbers_label_batches = \
-      inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size)
+    with ops.name_scope(None, 'Input') as sc:
+      metadata_handler = config.create_metadata_handler_fn(config.metadata_file_path, config.max_number_length, config.data_dir_path)
+      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size)
+
     self.total_loss = None
     self.global_step = None
 
   def build(self):
     length_output, numbers_output = self._build_base_net()
-    length_loss = tf.nn.softmax_cross_entropy_with_logits(length_output, self.length_label_batches)
-    tf.contrib.losses.add_loss(tf.log(tf.reduce_mean(length_loss), 'length_loss'))
+
+    number_losses = []
+    with ops.name_scope(None, 'Loss') as sc:
+      length_loss = tf.nn.softmax_cross_entropy_with_logits(length_output, self.length_label_batches)
+      length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
+      self.total_loss = length_loss
+
+      for i in range(self.config.max_number_length):
+        number_loss = tf.nn.softmax_cross_entropy_with_logits(numbers_output[i], self.numbers_label_batches[:,i,:])
+        number_loss = tf.log(tf.reduce_mean(number_loss), 'number%s_loss' % (i + 1))
+        number_losses.append(number_loss)
+        self.total_loss = self.total_loss + number_loss
+
+    tf.summary.scalar("loss/length_loss", length_loss)
     for i in range(self.config.max_number_length):
-      number_loss = tf.nn.softmax_cross_entropy_with_logits(numbers_output[i], self.numbers_label_batches[:,i,:])
-      tf.contrib.losses.add_loss(tf.log(tf.reduce_mean(number_loss), 'number%s_loss' % (i + 1)))
-    self.total_loss = tf.contrib.losses.get_total_loss()
+      tf.summary.scalar("loss/number%s_loss" % (i + 1), number_losses[i])
+    tf.summary.scalar("loss/total_loss", self.total_loss)
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
 
     self.setup_global_step()
 
