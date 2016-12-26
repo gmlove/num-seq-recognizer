@@ -11,8 +11,8 @@ tf.flags.DEFINE_integer("log_every_n_steps", 1,
 tf.flags.DEFINE_integer("number_of_steps", 10000, "Number of training steps.")
 tf.flags.DEFINE_integer("batch_size", 64, "Batch size.")
 
-metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/digitStruct.mat')
-tf.flags.DEFINE_string("metadata_file_path", metadata_file_path, "Meta data file path.")
+default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/digitStruct.mat')
+tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta data file path.")
 
 class TrainConfig():
 
@@ -32,7 +32,7 @@ class TrainConfig():
 
 
 def main(unused_argv):
-  model_config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=FLAGS.batch_size)
+  model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path, batch_size=FLAGS.batch_size)
   training_config = TrainConfig()
 
   if not os.path.exists(training_config.train_dir):
