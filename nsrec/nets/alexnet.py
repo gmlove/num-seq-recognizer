@@ -1,10 +1,11 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
-
-trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
+from nsrec.nets import variable_scope_fn, end_points_collection_name, trunc_normal
 
 default_scope_name = 'alexnet_v2'
 image_height, image_width = 224, 224
+variable_scope = variable_scope_fn(default_scope_name)
+
 
 def cnn_layers(inputs, scope, end_points_collection):
   # Collect outputs for conv2d and max_pool2d.
@@ -22,15 +23,6 @@ def cnn_layers(inputs, scope, end_points_collection):
 
   end_points = slim.utils.convert_collection_to_dict(end_points_collection)
   return net, end_points
-
-def variable_scope(values=None, name_or_scope=None, **kwargs):
-  values = values if isinstance(values, (tuple, list)) else [values]
-  kwargs.update({'values': values, 'default_name': default_scope_name})
-  return tf.variable_scope(name_or_scope, **kwargs)
-
-def end_points_collection_name(variable_scope):
-  end_points_collection = variable_scope.original_name_scope + '_end_points'
-  return end_points_collection
 
 
 def fc_layers(net,
