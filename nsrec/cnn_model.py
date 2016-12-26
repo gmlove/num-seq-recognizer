@@ -14,7 +14,6 @@ class CNNModelConfig(object):
     self.max_number_length = 5
     self.batch_size = 64
     self.size = [alexnet.image_height, alexnet.image_width]
-    self.train_dir = os.path.join(current_dir, '../output')
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length', 'batch_size', 'size']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
