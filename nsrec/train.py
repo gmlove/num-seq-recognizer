@@ -14,6 +14,7 @@ tf.flags.DEFINE_integer("batch_size", 64, "Batch size.")
 default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/metadata.pickle')
 tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta data file path.")
 
+tf.flags.DEFINE_integer("save_summaries_secs", 30, "Save summaries per secs.")
 
 class TrainConfig():
 
@@ -60,6 +61,7 @@ def main(unused_argv):
     graph=g,
     global_step=model.global_step,
     number_of_steps=FLAGS.number_of_steps,
+    save_summaries_secs=FLAGS.save_summaries_secs,
     saver=saver)
 
 if __name__ == '__main__':
