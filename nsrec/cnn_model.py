@@ -14,7 +14,7 @@ class CNNModelConfig(object):
     self.max_number_length = 5
     self.batch_size = 64
     self.size = [cnn_net.image_height, cnn_net.image_width]
-    self.create_metadata_handler_fn = inputs.create_mat_metadata_handler
+    self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
                  'batch_size', 'size', 'create_metadata_handler_fn']:
