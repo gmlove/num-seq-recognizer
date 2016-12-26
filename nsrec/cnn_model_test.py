@@ -8,7 +8,7 @@ class CNNModelTest(tf.test.TestCase):
 
   def test_train_model(self):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
-    metadata_file_path = DataReaderTest.createTestData(25, metadata_dir_path)
+    metadata_file_path = DataReaderTest.createTestMatMetadata(25, metadata_dir_path)
     config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
 
     with self.test_session():

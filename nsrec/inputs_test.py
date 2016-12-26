@@ -7,14 +7,24 @@ from nsrec.data_preprocessor_test import DataReaderTest
 
 class InputTest(tf.test.TestCase):
 
-  def test_batches(self):
+  def test_batches_from_mat(self):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    metadata_file_path = DataReaderTest.createTestMatMetadata(25, metadata_dir_path)
+
+    self._test_batches(metadata_file_path, inputs.mat_metadata_handler)
+
+  def test_batches_from_pickle(self):
+    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
+
+    self._test_batches(metadata_file_path, inputs.pickle_metadata_handler)
+
+  def _test_batches(self, metadata_file_path, metadata_handler_fn):
     data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
-    metadata_file_path = DataReaderTest.createTestData(25, metadata_dir_path)
 
     max_number_length, batch_size, size = 5, 2, (28, 28)
     with self.test_session() as sess:
-      metadata_handler = inputs.mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
+      metadata_handler = metadata_handler_fn(metadata_file_path, max_number_length, data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
         inputs.batches(metadata_handler, max_number_length, batch_size, size)
 

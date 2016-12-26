@@ -11,3 +11,7 @@ http://ufldl.stanford.edu/housenumbers/extra_32x32.mat
 2. BatchGenerator
 3. model
 4. evaluate
+
+### Preprocessor
+ 
+`python nsrec/data_preprocessor.py --metadata_file_path=./data/train/digitStruct.mat --output_file_path=./data/train/metadata.pickle`

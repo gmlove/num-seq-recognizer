@@ -1,5 +1,6 @@
 import os
 
+from six.moves import cPickle as pickle
 import tensorflow as tf
 from nsrec import data_preprocessor
 
@@ -36,17 +37,45 @@ def mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
       if len(data.label) > max_number_length:
         tf.logging.info('ignore data since label is too long: filename=%s, label=%s' % (data.filename, data.label))
         continue
-      numbers_one_hot = [tf.one_hot(ord(ch) - ord('0'), 10) for ch in data.label]
-      no_number_one_hot = tf.constant([[0.1] * 10] * (max_number_length - len(data.label)))
-      filenames.append(os.path.join(data_dir_path, data.filename))
-      length_labels.append(tf.one_hot(len(data.label) - 1, max_number_length))
-      if len(data.label) < max_number_length:
-        numbers_labels.append(tf.concat(0, [numbers_one_hot, no_number_one_hot]))
-      else:
-        numbers_labels.append(numbers_one_hot)
+
+      filename, length_label, numbers_label = _to_data(data.filename, data.label, max_number_length, data_dir_path)
+      filenames.append(filename)
+      length_labels.append(length_label)
+      numbers_labels.append(numbers_label)
 
       if read_count % 1000 == 0:
         tf.logging.info('readed %s records', read_count)
+    return filenames, length_labels, numbers_labels
+
+
+  return handler
+
+
+def _to_data(filename, label, max_number_length, data_dir_path):
+  numbers_one_hot = [tf.one_hot(ord(ch) - ord('0'), 10) for ch in label]
+  no_number_one_hot = tf.constant([[0.1] * 10] * (max_number_length - len(label)))
+  filename = os.path.join(data_dir_path, filename)
+  length_label = tf.one_hot(len(label) - 1, max_number_length)
+  if len(label) < max_number_length:
+    numbers_label = tf.concat(0, [numbers_one_hot, no_number_one_hot])
+  else:
+    numbers_label = numbers_one_hot
+  return filename, length_label, numbers_label
+
+
+def pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
+
+  def handler():
+    filenames, length_labels, numbers_labels = [], [], []
+    metadata = pickle.load(open(metadata_file_path, 'rb'))
+    short_filenames, labels = metadata['filenames'], metadata['labels']
+
+    for i, filename in enumerate(short_filenames):
+      filename, length_label, numbers_label = _to_data(filename, labels[i], max_number_length, data_dir_path)
+      filenames.append(filename)
+      length_labels.append(length_label)
+      numbers_labels.append(numbers_label)
+
     return filenames, length_labels, numbers_labels
 
   return handler

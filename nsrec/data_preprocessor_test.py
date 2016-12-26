@@ -2,13 +2,27 @@ import os
 
 import h5py
 import tensorflow as tf
+from six.moves import cPickle as pickle
 from nsrec.data_preprocessor import metadata_generator
 from nsrec.models import Data, BBox
 
 class DataReaderTest(tf.test.TestCase):
 
   @classmethod
-  def createTestData(cls, test_data_count, test_dir_path=None):
+  def createTestPickleMetadata(cls, test_data_count, test_dir_path=None):
+    mat_metadata_file = DataReaderTest.createTestMatMetadata(test_data_count, test_dir_path)
+
+    filenames, labels = [], []
+    for i, data in enumerate(metadata_generator(mat_metadata_file)):
+      filenames.append(data.filename)
+      labels.append(data.label)
+
+    metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
+    pickle.dump({'filenames': filenames, 'labels': labels}, open(metadata_file, 'wb'))
+    return metadata_file
+
+  @classmethod
+  def createTestMatMetadata(cls, test_data_count, test_dir_path=None):
     test_dir_path = test_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
     test_f = h5py.File(metadata_file, 'w')
@@ -57,7 +71,7 @@ class DataReaderTest(tf.test.TestCase):
     return metadata_file
 
   def test_create_metadata_file_for_testing(self):
-    DataReaderTest.createTestData(25)
+    DataReaderTest.createTestMatMetadata(25)
 
     data_pack = []
     for i, data in enumerate(metadata_generator('./test_data/digitStruct.mat')):
