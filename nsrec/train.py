@@ -8,7 +8,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
-tf.flags.DEFINE_integer("number_of_steps", 10000, "Number of training steps.")
+tf.flags.DEFINE_integer("number_of_steps", 5000, "Number of training steps.")
 tf.flags.DEFINE_integer("batch_size", 64, "Batch size.")
 
 default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/metadata.pickle')
