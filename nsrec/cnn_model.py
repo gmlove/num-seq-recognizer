@@ -56,13 +56,12 @@ class CNNModelBase:
       net, _ = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection)
       self.length_output, _ = self.cnn_net.fc_layers(
         net, variable_scope, end_points_collection,
-        num_classes=self.config.max_number_length,
-        is_training=self.is_training,
-        name_prefix='length')
+        num_classes=self.config.max_number_length, is_training=self.is_training, name_prefix='length')
       self.numbers_output = []
       for i in range(self.config.max_number_length):
-        number_output, _ = self.cnn_net.fc_layers(net, variable_scope, end_points_collection,
-                                             num_classes=10, name_prefix='number%s' % (i + 1))
+        number_output, _ = self.cnn_net.fc_layers(
+          net, variable_scope, end_points_collection,
+          is_training=self.is_training, num_classes=10, name_prefix='number%s' % (i + 1))
         self.numbers_output.append(number_output)
 
 
