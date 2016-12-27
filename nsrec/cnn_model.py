@@ -48,14 +48,17 @@ class CNNModelBase:
     self.data_batches = None
     self.length_output = None
     self.numbers_output = None
+    self.is_training = True
 
   def _build_base_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection = self.cnn_net.end_points_collection_name(variable_scope)
       net, _ = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection)
-      self.length_output, _ = self.cnn_net.fc_layers(net, variable_scope, end_points_collection,
-                                           num_classes=self.config.max_number_length,
-                                           name_prefix='length')
+      self.length_output, _ = self.cnn_net.fc_layers(
+        net, variable_scope, end_points_collection,
+        num_classes=self.config.max_number_length,
+        is_training=self.is_training,
+        name_prefix='length')
       self.numbers_output = []
       for i in range(self.config.max_number_length):
         number_output, _ = self.cnn_net.fc_layers(net, variable_scope, end_points_collection,
@@ -115,6 +118,7 @@ class CNNEvalModel(CNNTrainModel):
 
   def __init__(self, config):
     super(CNNEvalModel, self).__init__(config)
+    self.is_training = False
 
   def build(self):
     super(CNNEvalModel, self).build()
