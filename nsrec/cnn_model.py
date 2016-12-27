@@ -6,6 +6,7 @@ from tensorflow.python.framework import ops
 
 from nsrec import inputs
 from nsrec.nets import lenet, alexnet
+from nsrec.np_ops import correct_count
 
 
 class CNNModelConfig(object):
@@ -110,8 +111,44 @@ class CNNTrainModel(CNNModelBase):
     self.global_step = global_step
 
 
-class CNNEvalModel(CNNModelBase):
-  pass
+class CNNEvalModel(CNNTrainModel):
+
+  def __init__(self, config):
+    super(CNNEvalModel, self).__init__(config)
+
+  def build(self):
+    super(CNNEvalModel, self).build()
+
+    with ops.name_scope(None, 'EvalOutput') as sc:
+      self.length_label_batches_pd = tf.nn.softmax(self.length_output, name="length_output/softmax")
+      self.numbers_label_batches_pd = []
+      for i in range(self.config.max_number_length):
+        number_prob_distribution = tf.nn.softmax(self.numbers_output[i], name="number%s_output/softmax" % i)
+        self.numbers_label_batches_pd.append(number_prob_distribution)
+
+  def correct_count(self, sess):
+    calculated_values = sess.run({
+      'length_label_batches': self.length_label_batches,
+      'numbers_label_batches': self.numbers_label_batches,
+      'length_label_batches_pd': self.length_label_batches_pd,
+      'numbers_label_batches_pd': self.numbers_label_batches_pd
+    })
+    length_label_batches, numbers_label_batches, \
+    length_label_batches_pd, numbers_label_batches_pd = \
+      calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
+      calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
+
+    # numbers_label_batches.shape is (batch_size, max_numbers_length, 10)
+    # numbers_label_batches_pd.shape is (max_numbers_length, batch_size, 10)
+    # transform numbers_label_batches_pd to be the same as numbers_label_batches
+    normalized_numbers_label_batches_pd = []
+    for i in range(self.config.batch_size):
+      normalized_numbers_label_batches_pd.append([])
+      for j in range(self.config.max_number_length):
+        normalized_numbers_label_batches_pd[i].append(numbers_label_batches_pd[j][i])
+
+    return correct_count(length_label_batches, numbers_label_batches,
+                         length_label_batches_pd, normalized_numbers_label_batches_pd)
 
 
 class CNNPredictModel(CNNModelBase):
