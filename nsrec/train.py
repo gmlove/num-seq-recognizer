@@ -35,6 +35,22 @@ class TrainConfig():
     self.train_dir = os.path.join(current_dir, '../output/train')
 
 
+def learning_rate_fn(batch_size):
+  num_epochs_per_decay = 8.0
+  learning_rate = tf.constant(0.5)
+  num_batches_per_epoch = (1000 / batch_size)
+  decay_steps = int(num_batches_per_epoch * num_epochs_per_decay)
+
+  def learning_rate_decay_fn(learning_rate, global_step):
+    return tf.train.exponential_decay(
+      learning_rate,
+      global_step,
+      decay_steps=decay_steps,
+      decay_rate=0.5,
+      staircase=True)
+
+  return learning_rate, learning_rate_decay_fn
+
 
 def main(unused_argv):
   model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
@@ -51,10 +67,13 @@ def main(unused_argv):
     model = CNNTrainModel(model_config)
     model.build()
 
+    learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size)
+
     train_op = tf.contrib.layers.optimize_loss(
       loss=model.total_loss,
       global_step=model.global_step,
-      learning_rate=training_config.learning_rate,
+      learning_rate=learning_rate,
+      learning_rate_decay_fn=learning_rate_decay_fn,
       optimizer=training_config.optimizer)
 
     saver = tf.train.Saver(max_to_keep=training_config.max_checkpoints_to_keep)
