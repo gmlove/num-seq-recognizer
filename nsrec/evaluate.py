@@ -21,6 +21,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 default_metadata_file_path = os.path.join(current_dir, '../data/test/metadata.pickle')
 tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path,
                        "Meta data file path.")
+default_data_dir_path = os.path.join(current_dir, '../data/test/')
+tf.flags.DEFINE_string("data_dir_path", default_data_dir_path,
+                       "Meta data directory path.")
 
 default_checkpoint_dir = os.path.join(current_dir, '../output/train')
 tf.flags.DEFINE_string("checkpoint_dir", default_checkpoint_dir,
@@ -137,8 +140,8 @@ def run():
   g = tf.Graph()
   with g.as_default(), tf.device('/cpu:0'):
     # Build the model for evaluation.
-    model_config = CNNModelConfig()
-    model_config.metadata_file_path = FLAGS.metadata_file_path
+    model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                                  data_dir_path=FLAGS.data_dir_path)
     model = CNNEvalModel(model_config)
     model.build()
 
