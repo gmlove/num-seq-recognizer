@@ -59,14 +59,16 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
     math.ceil(FLAGS.num_eval_examples / model.config.batch_size))
 
   start_time = time.time()
-  correct_count = 0
+  total_correct_count = 0
   for i in range(num_eval_batches):
-    correct_count += model.correct_count(sess)
+    correct_count = model.correct_count(sess)
+    total_correct_count += correct_count
     if not i % 10:
-      tf.logging.info("Computed accuracy for %d of %d batches.", i + 1, num_eval_batches)
+      tf.logging.info("Computed accuracy for %d of %d batches: %s",
+                      i + 1, num_eval_batches, correct_count / model.config.batch_size)
   eval_time = time.time() - start_time
 
-  accuracy = correct_count / (num_eval_batches * model.config.batch_size)
+  accuracy = total_correct_count / (num_eval_batches * model.config.batch_size)
   tf.logging.info("Accuracy = %f (%.2g sec)", accuracy, eval_time)
 
   # Log accuracy to the SummaryWriter.
