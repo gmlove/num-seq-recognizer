@@ -16,6 +16,9 @@ tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta d
 
 tf.flags.DEFINE_integer("save_summaries_secs", 30, "Save summaries per secs.")
 
+tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
+
+
 class TrainConfig():
 
   def __init__(self):
@@ -29,12 +32,14 @@ class TrainConfig():
     self.max_checkpoints_to_keep = 5
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.train_dir = os.path.join(current_dir, '../output')
+    self.train_dir = os.path.join(current_dir, '../output/train')
 
 
 
 def main(unused_argv):
-  model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path, batch_size=FLAGS.batch_size)
+  model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                                batch_size=FLAGS.batch_size,
+                                net_type=FLAGS.net_type)
   training_config = TrainConfig()
 
   if not os.path.exists(training_config.train_dir):
