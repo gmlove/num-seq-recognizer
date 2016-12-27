@@ -135,7 +135,7 @@ def run():
     tf.gfile.MakeDirs(eval_dir)
 
   g = tf.Graph()
-  with g.as_default():
+  with g.as_default(), tf.device('/cpu:0'):
     # Build the model for evaluation.
     model_config = CNNModelConfig()
     model_config.metadata_file_path = FLAGS.metadata_file_path
