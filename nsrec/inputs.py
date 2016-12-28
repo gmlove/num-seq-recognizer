@@ -8,7 +8,8 @@ from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
 
-def batches(data_generator_fn, max_number_length, batch_size, size, num_preprocess_threads=1):
+def batches(data_generator_fn, max_number_length, batch_size, size,
+            num_preprocess_threads=1, is_training=True):
   filenames, length_labels, numbers_labels = data_generator_fn()
 
   filename_queue = tf.train.string_input_producer(
@@ -18,10 +19,30 @@ def batches(data_generator_fn, max_number_length, batch_size, size, num_preproce
   numbers_label_queue = tf.train.input_producer(
     tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
 
+  def image_summary(name, image):
+    tf.summary.image(name, tf.expand_dims(image, 0))
+
   reader = tf.WholeFileReader()
   _, dequeued_record_string = reader.read(filename_queue)
+
   dequeued_img = tf.image.decode_png(dequeued_record_string, 3)
-  dequeued_img = tf.image.resize_images(dequeued_img, size)
+  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
+
+  image_summary("original_image", dequeued_img)
+
+  dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
+
+  image_summary("resized_images", dequeued_img)
+
+  # Crop to final dimensions.
+  if is_training:
+    dequeued_img = tf.random_crop(dequeued_img, [size[0], size[1], 3])
+  else:
+    # Central crop, assuming resize_height > height, resize_width > width.
+    dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
+
+  image_summary("final_image", dequeued_img)
+
 
   return tf.train.batch(
     [dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()],

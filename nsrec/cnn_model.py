@@ -51,6 +51,8 @@ class CNNModelBase:
     self.is_training = True
 
   def _build_base_net(self):
+    self._pre_build(self.config)
+
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection = self.cnn_net.end_points_collection_name(variable_scope)
       net, _ = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection)
@@ -64,19 +66,24 @@ class CNNModelBase:
           is_training=self.is_training, num_classes=10, name_prefix='number%s' % (i + 1))
         self.numbers_output.append(number_output)
 
+  def _pre_build(self):
+    pass
 
 class CNNTrainModel(CNNModelBase):
 
   def __init__(self, config):
     super(CNNTrainModel, self).__init__(config)
 
-    with ops.name_scope(None, 'Input') as sc:
-      metadata_handler = config.create_metadata_handler_fn(config.metadata_file_path, config.max_number_length, config.data_dir_path)
-      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
-        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size)
-
     self.total_loss = None
     self.global_step = None
+
+  def _pre_build(self, config):
+    with ops.name_scope(None, 'Input') as sc:
+      metadata_handler = config.create_metadata_handler_fn(
+        config.metadata_file_path, config.max_number_length, config.data_dir_path)
+      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
+                       is_training=self.is_training)
 
   def build(self):
     self._build_base_net()
