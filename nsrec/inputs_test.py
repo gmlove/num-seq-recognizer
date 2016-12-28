@@ -31,10 +31,10 @@ class InputTest(tf.test.TestCase):
 
   def test_batches_with_label_length_longer_than_max_num_length(self):
     self._test_batches(self._test_metadata_file_path(), inputs.create_pickle_metadata_handler, 1,
-                       one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 8]))
+                       one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 8]), np.array([[0, 0, 1] + [0] * 7]))
 
   def _test_batches(self, metadata_file_path, metadata_handler_fn, max_number_length=5,
-                    expected_length_labels=None, expected_numbers_labels=None):
+                    expected_length_labels=None, expected_numbers_labels=None, expected_numbers_labels_1=None):
     data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
 
     batch_size, size = 2, (28, 28)
@@ -57,13 +57,20 @@ class InputTest(tf.test.TestCase):
       db, llb, nlb = batches[0]
       expected_length_labels = expected_length_labels if expected_length_labels is not None else one_hot(np.array([2, 2]), max_number_length)
       self.assertAllEqual(llb, expected_length_labels)
-      expected_numbers_labels = expected_numbers_labels if expected_numbers_labels is not None else np.concatenate(
-        [one_hot(np.array([1, 9]) + 1, 10), np.array([[0.1] * 10, [0.1] * 10, [0.1] * 10])])
-      self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
+      self.assertNumbersLabelEqual(nlb, expected_numbers_labels, expected_numbers_labels_1)
 
       coord.request_stop()
       coord.join(threads)
       sess.close()
+
+  def assertNumbersLabelEqual(self, nlb, expected_numbers_labels, expected_numbers_labels_1):
+    def expected_numbers_label(expected_numbers_labels, numbers):
+      return expected_numbers_labels if expected_numbers_labels is not None else np.concatenate(
+        [one_hot(np.array(numbers) + 1, 10), np.array([[0.1] * 10 for i in range(5 - len(numbers))])])
+    expected_numbers_labels = expected_numbers_label(expected_numbers_labels, [1, 9])
+    self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
+    expected_numbers_labels_1 = expected_numbers_label(expected_numbers_labels_1, [2, 3])
+    self.assertNDArrayNear(nlb[1], expected_numbers_labels_1, 1e-5)
 
   def test_read_whole_train_metadata(self):
     max_number_length, batch_size, size = 5, 64, (64, 64)
