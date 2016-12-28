@@ -18,7 +18,7 @@ tf.flags.DEFINE_integer("save_summaries_secs", 30, "Save summaries per secs.")
 
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 
-tf.flags.DEFINE_integer("max_numbers_length", 5, "Max numbers length.")
+tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
 
 
 class TrainConfig():
@@ -58,7 +58,7 @@ def main(unused_argv):
   model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
                                 batch_size=FLAGS.batch_size,
                                 net_type=FLAGS.net_type,
-                                max_number_length=FLAGS.max_numbers_length)
+                                max_number_length=FLAGS.max_number_length)
   training_config = TrainConfig()
 
   if not os.path.exists(training_config.train_dir):

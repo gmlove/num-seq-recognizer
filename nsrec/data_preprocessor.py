@@ -9,7 +9,7 @@ tf.flags.DEFINE_string("mat_metadata_file_path", "",
                        "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
-tf.flags.DEFINE_integer("max_numbers_length", 5,
+tf.flags.DEFINE_integer("max_number_length", 5,
                        "Max numbers length.")
 
 
@@ -20,7 +20,7 @@ def main(args):
   metadata = metadata_generator(FLAGS.mat_metadata_file_path)
   filenames, labels = [], []
   for i, md in enumerate(metadata):
-    if len(md.label) > FLAGS.max_numbers_length:
+    if len(md.label) > FLAGS.max_number_length:
       tf.logging.info('ignore record, label too long: label=%s, filename=%s', md.label, md.filename)
       continue
     filenames.append(md.filename)

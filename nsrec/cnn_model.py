@@ -141,8 +141,8 @@ class CNNEvalModel(CNNTrainModel):
       calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
       calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
 
-    # numbers_label_batches.shape is (batch_size, max_numbers_length, 10)
-    # numbers_label_batches_pd.shape is (max_numbers_length, batch_size, 10)
+    # numbers_label_batches.shape is (batch_size, max_number_length, 10)
+    # numbers_label_batches_pd.shape is (max_number_length, batch_size, 10)
     # transform numbers_label_batches_pd to be the same as numbers_label_batches
     normalized_numbers_label_batches_pd = []
     for i in range(self.config.batch_size):
