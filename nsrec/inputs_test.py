@@ -43,7 +43,7 @@ class InputTest(tf.test.TestCase):
       db, llb, nlb = batches[0]
       self.assertAllEqual(llb, one_hot(np.array([2, 2]), max_number_length))
       self.assertNDArrayNear(nlb[0], np.concatenate([
-        one_hot(np.array([1, 9]) + 1, 10), np.array([[0.1] * 10] * 3)
+        one_hot(np.array([1, 9]) + 1, 10), np.array([[0.1] * 10, [0.1] * 10, [0.1] * 10])
       ]), 1e-5)
 
       coord.request_stop()

@@ -63,7 +63,7 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
 
 def _to_data(filename, label, max_number_length, data_dir_path):
   numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 10) for ch in label]
-  no_number_one_hot = [[0.1] * 10] * (max_number_length - len(label))
+  no_number_one_hot = [[0.1] * 10 for i in range(max_number_length - len(label))]
   filename = os.path.join(data_dir_path, filename)
   length_label = one_hot(len(label), max_number_length)
   if len(label) < max_number_length:
