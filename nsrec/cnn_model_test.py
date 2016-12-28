@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from nsrec.cnn_model import *
-from nsrec.data_preprocessor_test import DataReaderTest
+from nsrec.inputs_test import DataReaderTest
 
 
 class CNNModelTest(tf.test.TestCase):

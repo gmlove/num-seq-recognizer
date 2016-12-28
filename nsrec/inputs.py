@@ -1,9 +1,10 @@
 import os
 
+import h5py
 from six.moves import cPickle as pickle
 import tensorflow as tf
 import numpy as np
-from nsrec import data_preprocessor
+from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
 
@@ -31,7 +32,7 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
 
   def handler():
     filenames, length_labels, numbers_labels = [], [], []
-    metadata = data_preprocessor.metadata_generator(metadata_file_path)
+    metadata = metadata_generator(metadata_file_path)
 
     read_count = 0
     for data in metadata:
@@ -62,7 +63,12 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
 
 
 def _to_data(filename, label, max_number_length, data_dir_path):
-  numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 10) for ch in label]
+  # fix label if longer than max_number_length
+  label = label[:max_number_length]
+  if max_number_length == 1:
+    numbers_one_hot = [one_hot(ord(label) - ord('0') + 1, 10)]
+  else:
+    numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 10) for ch in label]
   no_number_one_hot = [[0.1] * 10 for i in range(max_number_length - len(label))]
   filename = os.path.join(data_dir_path, filename)
   length_label = one_hot(len(label), max_number_length)
@@ -92,3 +98,25 @@ def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_d
     return filenames, length_labels, numbers_labels
 
   return handler
+
+
+def metadata_generator(file_path):
+  f = h5py.File(file_path)
+  refs, ds = f['#refs#'], f['digitStruct']
+
+  def bboxes(i):
+    attr_names = 'label top left width height'.split()
+    bboxes = []
+    bboxes_raw = refs[ds['bbox'][i][0]]
+    bboxes_count = bboxes_raw['label'].value.shape[0]
+    for j in range(bboxes_count):
+      real_value = lambda ref_or_real_value: refs[ref_or_real_value].value.reshape(-1)[0] \
+        if isinstance(ref_or_real_value, h5py.h5r.Reference) else ref_or_real_value
+      attr_value = lambda attr_name: real_value(bboxes_raw[attr_name].value[j][0])
+      bboxes.append(BBox(*[attr_value(an) for an in attr_names]))
+    return bboxes
+
+  for i, name in enumerate(ds['name']):
+    ords = refs[name[0]].value
+    name_str = ''.join([chr(ord) for ord in ords.reshape(-1)])
+    yield Data(name_str, bboxes(i))
