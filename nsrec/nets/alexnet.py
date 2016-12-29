@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import slim
+from tensorflow.python.framework import ops
+
 from nsrec.nets import variable_scope_fn, end_points_collection_name, trunc_normal
 
 default_scope_name = 'alexnet_v2'
@@ -21,8 +23,7 @@ def cnn_layers(inputs, scope, end_points_collection):
     net = slim.conv2d(net, 256, [3, 3], scope='conv5')
     net = slim.max_pool2d(net, [3, 3], 2, scope='pool5')
 
-  end_points = slim.utils.convert_collection_to_dict(end_points_collection)
-  return net, end_points
+  return net, end_points_collection
 
 
 def fc_layers(net,
@@ -52,9 +53,7 @@ def fc_layers(net,
                       biases_initializer=tf.zeros_initializer,
                       scope=full_scope_name('fc8'))
 
-  # Convert end_points_collection into a end_point dict.
-  end_points = slim.utils.convert_collection_to_dict(end_points_collection)
   if spatial_squeeze:
-    net = tf.squeeze(net, [1, 2], name='fc8/squeezed')
-    end_points[scope.name + '/fc8'] = net
-  return net, end_points
+    net = tf.squeeze(net, [1, 2], name=full_scope_name('fc8/squeezed'))
+    ops.add_to_collection(end_points_collection, net)
+  return net, end_points_collection

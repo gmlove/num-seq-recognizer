@@ -1,4 +1,6 @@
 import tensorflow as tf
+from tensorflow.contrib import slim
+
 from nsrec.nets import lenet
 from nsrec.nets.test import BaseNetTest
 
@@ -11,7 +13,9 @@ class LenetTest(BaseNetTest):
       inputs = tf.random_uniform((batch_size, height, width, channels))
       with lenet.variable_scope([inputs]) as variable_scope:
         end_points_collection = lenet.end_points_collection_name(variable_scope)
-        _, end_points = lenet.cnn_layers(inputs, variable_scope, end_points_collection)
+        _, end_points_collection = lenet.cnn_layers(inputs, variable_scope, end_points_collection)
+
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
         'lenet/conv1',
@@ -29,8 +33,10 @@ class LenetTest(BaseNetTest):
       with lenet.variable_scope([inputs]) as variable_scope:
         end_points_collection = lenet.end_points_collection_name(variable_scope)
         net, _ = lenet.cnn_layers(inputs, variable_scope, end_points_collection)
-        _, end_points = lenet.fc_layers(net, variable_scope, end_points_collection,
+        _, end_points_collection = lenet.fc_layers(net, variable_scope, end_points_collection,
                                         num_classes=10, name_prefix=layers_name_prefix)
+
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
         'lenet/%s_fc3' % layers_name_prefix,

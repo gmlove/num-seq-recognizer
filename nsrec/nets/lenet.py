@@ -1,4 +1,3 @@
-import tensorflow as tf
 from tensorflow.contrib import slim
 
 from nsrec.nets import variable_scope_fn, end_points_collection_name
@@ -17,8 +16,7 @@ def cnn_layers(inputs, scope, end_points_collection):
     net = slim.max_pool2d(net, [2, 2], 2, scope='pool2')
     net = slim.flatten(net)
 
-  end_points = slim.utils.convert_collection_to_dict(end_points_collection)
-  return net, end_points
+  return net, end_points_collection
 
 
 def fc_layers(net,
@@ -40,6 +38,4 @@ def fc_layers(net,
     net = slim.fully_connected(net, num_classes, activation_fn=None,
                                scope=full_scope_name('fc4'))
 
-  end_points = slim.utils.convert_collection_to_dict(end_points_collection)
-
-  return net, end_points
+  return net, end_points_collection

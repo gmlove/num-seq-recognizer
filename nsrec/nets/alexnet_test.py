@@ -1,4 +1,6 @@
 import tensorflow as tf
+from tensorflow.contrib import slim
+
 from nsrec.nets import alexnet
 from nsrec.nets.test import BaseNetTest
 
@@ -27,7 +29,9 @@ class AlexnetTest(BaseNetTest):
       inputs = tf.random_uniform((batch_size, height, width, channels))
       with alexnet.variable_scope([inputs]) as variable_scope:
         end_points_collection = alexnet.end_points_collection_name(variable_scope)
-        _, end_points = alexnet.cnn_layers(inputs, variable_scope, end_points_collection)
+        _, end_points_collection = alexnet.cnn_layers(inputs, variable_scope, end_points_collection)
+
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
         'alexnet_v2/conv1',
@@ -49,12 +53,15 @@ class AlexnetTest(BaseNetTest):
       with alexnet.variable_scope([inputs]) as variable_scope:
         end_points_collection = alexnet.end_points_collection_name(variable_scope)
         net, _ = alexnet.cnn_layers(inputs, variable_scope, end_points_collection)
-        _, end_points = alexnet.fc_layers(net, variable_scope, end_points_collection, num_classes=10, name_prefix=layers_name_prefix)
+        _, end_points_collection = alexnet.fc_layers(net, variable_scope, end_points_collection, num_classes=10, name_prefix=layers_name_prefix)
+
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
         'alexnet_v2/%s_fc6' % layers_name_prefix,
         'alexnet_v2/%s_fc7' % layers_name_prefix,
-        'alexnet_v2/%s_fc8' % layers_name_prefix
+        'alexnet_v2/%s_fc8' % layers_name_prefix,
+        'alexnet_v2/%s_fc8/squeezed' % layers_name_prefix
       ]
       self.assertSetEqual(set(filter(lambda x: x.find('_fc') != -1, end_points.keys())),
                           set(expected_names))

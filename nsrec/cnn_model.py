@@ -54,8 +54,8 @@ class CNNModelBase:
     self._pre_build(self.config)
 
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
-      end_points_collection = self.cnn_net.end_points_collection_name(variable_scope)
-      net, _ = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection)
+      end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
+      net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
       self.length_output, _ = self.cnn_net.fc_layers(
         net, variable_scope, end_points_collection,
         num_classes=self.config.max_number_length, is_training=self.is_training, name_prefix='length')
