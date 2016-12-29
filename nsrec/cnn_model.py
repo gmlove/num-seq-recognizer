@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 
 from nsrec import inputs
-from nsrec.nets import lenet, alexnet
+from nsrec.nets import lenet, alexnet, inception_v3
 from nsrec.np_ops import correct_count
 
 
@@ -35,6 +35,8 @@ class CNNModelConfig(object):
   def cnn_net(self):
     if self.net_type == 'alexnet':
       return alexnet
+    elif self.net_type == 'inception_v3':
+      return inception_v3
     else:
       return lenet
 
