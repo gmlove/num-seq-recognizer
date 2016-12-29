@@ -41,6 +41,71 @@ class CNNModelConfig(object):
       return lenet
 
 
+class CNNLengthModelBase:
+
+  def __init__(self, config):
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.variables = None
+    self.data_batches = None
+    self.length_output = None
+    self.is_training = True
+
+  def _build_base_net(self):
+    self._pre_build(self.config)
+
+    with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
+      end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
+      net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
+      self.length_output, _ = self.cnn_net.fc_layers(
+        net, variable_scope, end_points_collection,
+        num_classes=self.config.max_number_length, is_training=self.is_training, name_prefix='length')
+
+  def _pre_build(self):
+    pass
+
+class CNNLengthTrainModel(CNNLengthModelBase):
+
+  def __init__(self, config):
+    super(CNNLengthTrainModel, self).__init__(config)
+
+    self.total_loss = None
+    self.global_step = None
+
+  def _pre_build(self, config):
+    with ops.name_scope(None, 'Input') as sc:
+      metadata_handler = config.create_metadata_handler_fn(
+        config.metadata_file_path, config.max_number_length, config.data_dir_path)
+      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
+                       is_training=self.is_training)
+
+  def build(self):
+    self._build_base_net()
+
+    number_losses = []
+    with ops.name_scope(None, 'Loss') as sc:
+      length_loss = tf.nn.softmax_cross_entropy_with_logits(self.length_output, self.length_label_batches)
+      length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
+      self.total_loss = length_loss
+
+    tf.summary.scalar("loss/total_loss", self.total_loss)
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
+
+    self.setup_global_step()
+
+  def setup_global_step(self):
+    """Sets up the global step Tensor."""
+    global_step = tf.Variable(
+      initial_value=0,
+      name="global_step",
+      trainable=False,
+      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
+
+    self.global_step = global_step
+
+
 class CNNModelBase:
 
   def __init__(self, config):

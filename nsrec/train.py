@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNModelConfig, CNNTrainModel
+from nsrec.cnn_model import CNNModelConfig, CNNTrainModel, CNNLengthTrainModel
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -19,6 +19,8 @@ tf.flags.DEFINE_integer("save_summaries_secs", 30, "Save summaries per secs.")
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
+
+tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
 
 
 class TrainConfig():
@@ -54,6 +56,13 @@ def learning_rate_fn(batch_size):
   return learning_rate, learning_rate_decay_fn
 
 
+def create_model(config):
+  if FLAGS.cnn_model_type == 'length':
+    return CNNLengthTrainModel(config)
+  else:
+    return CNNTrainModel(config)
+
+
 def main(unused_argv):
   model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
                                 batch_size=FLAGS.batch_size,
@@ -67,7 +76,7 @@ def main(unused_argv):
 
   g = tf.Graph()
   with g.as_default():
-    model = CNNTrainModel(model_config)
+    model = create_model(model_config)
     model.build()
 
     learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size)
