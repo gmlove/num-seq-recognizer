@@ -2,7 +2,8 @@ import os
 
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNModelConfig, CNNTrainModel, CNNLengthTrainModel
+from nsrec.cnn_model import CNNModelConfig, CNNTrainModel, CNNLengthTrainModel, CNNMnistTrainModel, \
+  CNNGeneralModelConfig
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -56,18 +57,23 @@ def learning_rate_fn(batch_size):
   return learning_rate, learning_rate_decay_fn
 
 
-def create_model(config):
+def create_model():
+  config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                          batch_size=FLAGS.batch_size,
+                          net_type=FLAGS.net_type,
+                          max_number_length=FLAGS.max_number_length)
   if FLAGS.cnn_model_type == 'length':
     return CNNLengthTrainModel(config)
+  elif FLAGS.cnn_model_type == 'mnist':
+    config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
+                                   net_type=FLAGS.net_type,
+                                   num_classes=10)
+    return CNNMnistTrainModel(config)
   else:
     return CNNTrainModel(config)
 
 
 def main(unused_argv):
-  model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                                batch_size=FLAGS.batch_size,
-                                net_type=FLAGS.net_type,
-                                max_number_length=FLAGS.max_number_length)
   training_config = TrainConfig()
 
   if not os.path.exists(training_config.train_dir):
@@ -76,7 +82,7 @@ def main(unused_argv):
 
   g = tf.Graph()
   with g.as_default():
-    model = create_model(model_config)
+    model = create_model()
     model.build()
 
     learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size)
