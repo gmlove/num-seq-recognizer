@@ -143,7 +143,7 @@ def metadata_generator(file_path):
     yield Data(name_str, bboxes(i))
 
 
-def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, data_count=60000):
+def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, data_count=55000):
   current_dir = os.path.dirname(os.path.abspath(__file__))
   mnist_data_dir = os.path.join(current_dir, '../MNIST-data')
   from tensorflow.examples.tutorials.mnist import input_data

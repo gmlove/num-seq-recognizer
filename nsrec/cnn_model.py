@@ -40,15 +40,24 @@ class CNNModelConfig(object):
     else:
       return lenet
 
+class CNNGeneralModelConfig(CNNModelConfig):
 
-class CNNLengthModelBase:
+  def __init__(self, **kwargs):
+    super(CNNGeneralModelConfig, self).__init__(**kwargs)
+    self.num_classes = self.max_number_length
+
+    for attr in ['num_classes']:
+      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
+
+
+class CNNGeneralModelBase:
 
   def __init__(self, config):
     self.config = config
     self.cnn_net = config.cnn_net
     self.variables = None
     self.data_batches = None
-    self.length_output = None
+    self.model_output = None
     self.is_training = True
 
   def _build_base_net(self):
@@ -57,14 +66,54 @@ class CNNLengthModelBase:
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
       net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
-      self.length_output, _ = self.cnn_net.fc_layers(
+      self.model_output, _ = self.cnn_net.fc_layers(
         net, variable_scope, end_points_collection,
-        num_classes=self.config.max_number_length, is_training=self.is_training, name_prefix='length')
+        num_classes=self.config.num_classes, is_training=self.is_training, name_prefix='length')
 
   def _pre_build(self):
     pass
 
-class CNNLengthTrainModel(CNNLengthModelBase):
+
+class CNNMnistTrainModel(CNNGeneralModelBase):
+
+  def __init__(self, config):
+    super(CNNMnistTrainModel, self).__init__(config)
+
+    self.label_batches = None
+    self.total_loss = None
+    self.global_step = None
+
+  def _pre_build(self, config):
+    with ops.name_scope(None, 'Input') as sc:
+      self.data_batches, self.label_batches = \
+        inputs.mnist_batches(config.batch_size, config.size, is_training=self.is_training)
+
+  def build(self):
+    self._build_base_net()
+
+    with ops.name_scope(None, 'Loss') as sc:
+      loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.label_batches)
+      loss = tf.reduce_mean(loss)
+      self.total_loss = loss
+
+    tf.summary.scalar("loss/total_loss", self.total_loss)
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
+
+    self.setup_global_step()
+
+  def setup_global_step(self):
+    """Sets up the global step Tensor."""
+    global_step = tf.Variable(
+      initial_value=0,
+      name="global_step",
+      trainable=False,
+      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
+
+    self.global_step = global_step
+
+
+class CNNLengthTrainModel(CNNGeneralModelBase):
 
   def __init__(self, config):
     super(CNNLengthTrainModel, self).__init__(config)
@@ -83,9 +132,8 @@ class CNNLengthTrainModel(CNNLengthModelBase):
   def build(self):
     self._build_base_net()
 
-    number_losses = []
     with ops.name_scope(None, 'Loss') as sc:
-      length_loss = tf.nn.softmax_cross_entropy_with_logits(self.length_output, self.length_label_batches)
+      length_loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.length_label_batches)
       length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
       self.total_loss = length_loss
 

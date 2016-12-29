@@ -6,21 +6,34 @@ from nsrec.inputs_test import DataReaderTest
 
 class CNNModelTest(tf.test.TestCase):
 
+  def test_train_mnist_model(self):
+    config = CNNGeneralModelConfig(batch_size=2, num_classes=10)
+    with self.test_session():
+      model = CNNMnistTrainModel(config)
+      model.build()
+
+      train_op = tf.contrib.layers.optimize_loss(
+        loss=model.total_loss, global_step=model.global_step,
+        learning_rate=0.1, optimizer=tf.train.MomentumOptimizer(0.5, momentum=0.5))
+      tf.contrib.slim.learning.train(
+        train_op, None, number_of_steps=2)
+
   def test_train_model_with_pickle_metadata(self):
     self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler)
 
   def test_train_length_model_with_pickle_metadata(self):
     self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler,
-                  CNNLengthTrainModel)
+                  CNNLengthTrainModel, CNNGeneralModelConfig)
 
   def test_train_model_with_mat_metadata(self):
     self.run_test(DataReaderTest.createTestMatMetadata, inputs.create_mat_metadata_handler)
 
-  def run_test(self, create_metadata_fn, create_metadata_handler_fn, model_cls=CNNTrainModel):
+  def run_test(self, create_metadata_fn, create_metadata_handler_fn, model_cls=CNNTrainModel,
+               cnn_model_config_cls=CNNModelConfig):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = create_metadata_fn(25, metadata_dir_path)
-    config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
-                            create_metadata_handler_fn=create_metadata_handler_fn)
+    config = cnn_model_config_cls(metadata_file_path=metadata_file_path, batch_size=2,
+                              create_metadata_handler_fn=create_metadata_handler_fn)
 
     with self.test_session():
       model = model_cls(config)
