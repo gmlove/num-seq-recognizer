@@ -541,7 +541,7 @@ def fc_layers(net,
     with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d],
                         stride=1, padding='SAME'):
       aux_logits = end_points['Mixed_6e']
-      with tf.variable_scope('AuxLogits'):
+      with tf.variable_scope(full_scope_name('AuxLogits')):
         aux_logits = slim.avg_pool2d(
           aux_logits, [5, 5], stride=3, padding='VALID',
           scope='AvgPool_1a_5x5')
@@ -564,7 +564,7 @@ def fc_layers(net,
         end_points['AuxLogits'] = aux_logits
 
     # Final pooling and prediction
-    with tf.variable_scope('Logits'):
+    with tf.variable_scope(full_scope_name('Logits')):
       kernel_size = _reduced_kernel_size_for_small_input(net, [8, 8])
       net = slim.avg_pool2d(net, kernel_size, padding='VALID',
                             scope='AvgPool_1a_{}x{}'.format(*kernel_size))
