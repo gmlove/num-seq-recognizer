@@ -19,34 +19,34 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
   numbers_label_queue = tf.train.input_producer(
     tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
 
-  def image_summary(name, image):
-    tf.summary.image(name, tf.expand_dims(image, 0))
-
   reader = tf.WholeFileReader()
   _, dequeued_record_string = reader.read(filename_queue)
 
   dequeued_img = tf.image.decode_png(dequeued_record_string, 3)
-  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
-
-  image_summary("original_image", dequeued_img)
-
-  dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
-
-  image_summary("resized_images", dequeued_img)
-
-  # Crop to final dimensions.
-  if is_training:
-    dequeued_img = tf.random_crop(dequeued_img, [size[0], size[1], 3])
-  else:
-    # Central crop, assuming resize_height > height, resize_width > width.
-    dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
-
-  image_summary("final_image", dequeued_img)
+  dequeued_img = _resize_image(dequeued_img, is_training, size)
 
 
   return tf.train.batch(
     [dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()],
     batch_size=batch_size, capacity=batch_size * 3)
+
+
+def _resize_image(dequeued_img, is_training, size, channels=3):
+  def image_summary(name, image):
+    tf.summary.image(name, tf.expand_dims(image, 0))
+
+  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
+  image_summary("original_image", dequeued_img)
+  dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
+  image_summary("resized_images", dequeued_img)
+  # Crop to final dimensions.
+  if is_training:
+    dequeued_img = tf.random_crop(dequeued_img, [size[0], size[1], channels])
+  else:
+    # Central crop, assuming resize_height > height, resize_width > width.
+    dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
+  image_summary("final_image", dequeued_img)
+  return dequeued_img
 
 
 def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
@@ -141,3 +141,26 @@ def metadata_generator(file_path):
     ords = refs[name[0]].value
     name_str = ''.join([chr(ord) for ord in ords.reshape(-1)])
     yield Data(name_str, bboxes(i))
+
+
+def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, data_count=60000):
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  mnist_data_dir = os.path.join(current_dir, '../MNIST-data')
+  from tensorflow.examples.tutorials.mnist import input_data
+  mnist = input_data.read_data_sets(mnist_data_dir, one_hot=True)
+
+  data, label = mnist.train.next_batch(data_count)
+  data = data.reshape(data_count, 28, 28, 1)
+
+  data_queue = tf.train.input_producer(data, shuffle=False, element_shape=(28, 28, 1), capacity=batch_size * 3)
+
+  dequeued_image = data_queue.dequeue()
+  dequeued_image = _resize_image(dequeued_image, is_training, size, channels=1)
+
+  label_queue = tf.train.input_producer(label, shuffle=False, element_shape=(10, ), capacity=batch_size * 3)
+
+  return tf.train.batch(
+    [dequeued_image, label_queue.dequeue()],
+    batch_size=batch_size, capacity=batch_size * 3)
+
+

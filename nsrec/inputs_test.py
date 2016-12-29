@@ -13,6 +13,28 @@ from nsrec.np_ops import one_hot
 
 class InputTest(tf.test.TestCase):
 
+  def test_mnist_batches(self):
+    batch_size, size = 2, (28, 28)
+    with self.test_session() as sess:
+      data_batches, label_batches = inputs.mnist_batches(batch_size, size, data_count=100)
+
+      self.assertEqual(data_batches.get_shape().as_list(), [2, 28, 28, 1])
+      self.assertEqual(label_batches.get_shape().as_list(), [2, 10])
+
+      coord = tf.train.Coordinator()
+      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+      batches = []
+      for i in range(5):
+        batches.append(sess.run([data_batches, label_batches]))
+
+      _, lb = batches[0]
+      self.assertAllEqual(np.argmax(lb, -1), [7, 3])
+
+      coord.request_stop()
+      coord.join(threads)
+      sess.close()
+
   def test_batches_from_mat(self):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = DataReaderTest.createTestMatMetadata(25, metadata_dir_path)
