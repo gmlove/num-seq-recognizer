@@ -82,6 +82,7 @@ class CNNMnistTrainModel(CNNGeneralModelBase):
     self.label_batches = None
     self.total_loss = None
     self.global_step = None
+    self.train_accuracy = None
 
   def _pre_build(self, config):
     with ops.name_scope(None, 'Input') as sc:
@@ -99,6 +100,14 @@ class CNNMnistTrainModel(CNNGeneralModelBase):
     tf.summary.scalar("loss/total_loss", self.total_loss)
     for var in tf.trainable_variables():
       tf.summary.histogram(var.op.name, var)
+
+    with ops.name_scope(None, 'accuracy/train') as sc:
+      correct_prediction = tf.equal(
+        tf.argmax(tf.nn.softmax(self.model_output), 1),
+        tf.argmax(self.label_batches, 1))
+      self.train_accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    tf.summary.scalar("accuracy/train", self.train_accuracy)
 
     self.setup_global_step()
 
