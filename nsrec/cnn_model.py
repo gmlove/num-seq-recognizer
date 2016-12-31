@@ -80,7 +80,8 @@ class CNNGeneralModelBase:
   def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
-      net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
+      net, end_points_collection = self.cnn_net.cnn_layers(
+        self.data_batches, variable_scope, end_points_collection_name)
       self.model_output, _ = self.cnn_net.fc_layers(
         net, variable_scope, end_points_collection,
         num_classes=self.config.num_classes, is_training=self.is_training, name_prefix='length')
@@ -218,12 +219,12 @@ class CNNNSRTrainModel(CNNNSRModelBase):
     number_losses = []
     with ops.name_scope(None, 'Loss') as sc:
       length_loss = tf.nn.softmax_cross_entropy_with_logits(self.length_output, self.length_label_batches)
-      length_loss = tf.log(tf.reduce_sum(length_loss), 'length_loss')
+      length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
       self.total_loss = length_loss
 
       for i in range(self.max_number_length):
         number_loss = tf.nn.softmax_cross_entropy_with_logits(self.numbers_output[i], self.numbers_label_batches[i])
-        number_loss = tf.log(tf.reduce_sum(number_loss), 'number%s_loss' % (i + 1))
+        number_loss = tf.log(tf.reduce_mean(number_loss), 'number%s_loss' % (i + 1))
         number_losses.append(number_loss)
         self.total_loss = self.total_loss + number_loss
 

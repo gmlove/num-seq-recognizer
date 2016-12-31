@@ -38,15 +38,19 @@ def _resize_image(dequeued_img, is_training, size, channels=3):
 
   dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
   image_summary("original_image", dequeued_img)
-  dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
+  # dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
+  dequeued_img = tf.image.resize_images(dequeued_img, [size[0], size[1]])
   image_summary("resized_images", dequeued_img)
+
   # Crop to final dimensions.
-  if is_training:
-    dequeued_img = tf.random_crop(dequeued_img, [size[0], size[1], channels])
-  else:
-    # Central crop, assuming resize_height > height, resize_width > width.
-    dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
+  # if is_training:
+  #   dequeued_img = tf.random_crop(dequeued_img, [size[0], size[1], channels])
+  # else:
+  #   # Central crop, assuming resize_height > height, resize_width > width.
+  #   dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
   image_summary("final_image", dequeued_img)
+
+  dequeued_img = dequeued_img - tf.reduce_mean(dequeued_img)
   return dequeued_img
 
 
