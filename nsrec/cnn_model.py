@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 
 from nsrec import inputs
-from nsrec.nets import lenet, alexnet, inception_v3
+from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr
 
 
 class CNNGeneralModelConfig(object):
@@ -33,6 +33,10 @@ class CNNGeneralModelConfig(object):
       tf.logging.info('using inception_v3 net')
       self.final_cnn_net = inception_v3
       return inception_v3
+    elif self.net_type == 'iclr_mnr':
+      tf.logging.info('using iclr_mnr net')
+      self.final_cnn_net = iclr_mnr
+      return iclr_mnr
     else:
       self.final_cnn_net = lenet
       tf.logging.info('using lenet')

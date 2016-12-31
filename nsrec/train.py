@@ -30,6 +30,7 @@ tf.flags.DEFINE_float("learning_rate", 0.05, "Learning rate")
 
 tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
 
+tf.flags.DEFINE_string("data_dir_path", None, "Train data path")
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 train_dir = os.path.join(current_dir, '../output/train')

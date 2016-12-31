@@ -17,9 +17,17 @@ http://ufldl.stanford.edu/housenumbers/extra_32x32.mat
 preprocess data:
 
 ```bash
-python nsrec/data_preprocessor.py \
-    --metadata_file_path=./data/train/digitStruct.mat \
-    --output_file_path=./data/train/metadata.pickle
+
+python3 nsrec/data_preprocessor.py \
+    --mat_metadata_file_path=./data/train/digitStruct.mat \
+    --output_file_path=./data/train/metadata.pickle \
+    --data_dir_path=./data/train
+
+python3 nsrec/data_preprocessor.py \
+    --mat_metadata_file_path=./data/test/digitStruct.mat \
+    --data_dir_path=./data/test \
+    --output_file_path=./data/test/metadata.pickle \
+    --rand_bbox_count=0
 ```
 
 ### train:
