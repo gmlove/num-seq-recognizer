@@ -35,7 +35,7 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
 
 def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
   def image_summary(name, image):
-    tf.summary.image(name, tf.expand_dims(image, 0))
+    # tf.summary.image(name, tf.expand_dims(image, 0))
     pass
 
   dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
