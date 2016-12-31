@@ -6,7 +6,7 @@ from tensorflow.python.framework import ops
 
 from nsrec import inputs
 from nsrec.nets import lenet, alexnet, inception_v3
-from nsrec.np_ops import correct_count
+
 
 class CNNGeneralModelConfig(object):
 
@@ -63,6 +63,7 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
+
 class CNNGeneralModelBase:
 
   def __init__(self, config):
@@ -94,7 +95,7 @@ class CNNGeneralModelBase:
     for var in tf.trainable_variables():
       tf.summary.histogram(var.op.name, var)
 
-  def _setup_accuracy(self):
+  def _setup_accuracy(self, **kwargs):
     pass
 
   def _setup_global_step(self):
@@ -233,8 +234,7 @@ class CNNNSRTrainModel(CNNNSRModelBase):
     for var in tf.trainable_variables():
       tf.summary.histogram(var.op.name, var)
 
-  def _setup_accuracy(self):
-    op_name = 'train/accuracy'
+  def _setup_accuracy(self, op_name='accuracy/train'):
     with ops.name_scope(None, op_name) as sc:
 
       length_prediction = tf.equal(
@@ -266,6 +266,9 @@ class CNNNSREvalModel(CNNNSRTrainModel):
   def __init__(self, config):
     super(CNNNSREvalModel, self).__init__(config)
     self.is_training = False
+
+  def _setup_accuracy(self, op_name='accuracy/eval'):
+    super(CNNNSREvalModel, self)._setup_accuracy(op_name)
 
   def correct_count(self, sess):
     train_accuracy = sess.run(self.train_accuracy)
