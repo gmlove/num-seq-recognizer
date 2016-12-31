@@ -262,6 +262,7 @@ class CNNNSRTrainModel(CNNNSRModelBase):
 
     tf.summary.scalar(op_name, self.train_accuracy)
 
+
 class CNNNSREvalModel(CNNNSRTrainModel):
 
   def __init__(self, config):

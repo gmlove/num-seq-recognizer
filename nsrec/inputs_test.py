@@ -101,7 +101,7 @@ class InputTest(tf.test.TestCase):
     metadata_file_path = os.path.join(current_dir, '../data/train/metadata.pickle')
     data_dir_path = os.path.join(current_dir, '../data/train')
     metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
-    filenames, length_labels, numbers_labels = metadata_handler()
+    filenames, bboxes, length_labels, numbers_labels = metadata_handler()
 
 
 class DataReaderTest(tf.test.TestCase):
@@ -110,13 +110,14 @@ class DataReaderTest(tf.test.TestCase):
   def createTestPickleMetadata(cls, test_data_count, test_dir_path=None):
     mat_metadata_file = DataReaderTest.createTestMatMetadata(test_data_count, test_dir_path)
 
-    filenames, labels = [], []
+    filenames, labels, bboxes = [], [], []
     for i, data in enumerate(metadata_generator(mat_metadata_file)):
       filenames.append(data.filename)
       labels.append(data.label)
+      bboxes.append(data.bbox())
 
     metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
-    pickle.dump({'filenames': filenames, 'labels': labels}, open(metadata_file, 'wb'))
+    pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, open(metadata_file, 'wb'))
 
     return metadata_file
 

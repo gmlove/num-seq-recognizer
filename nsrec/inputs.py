@@ -10,7 +10,7 @@ from nsrec.np_ops import one_hot
 
 def batches(data_generator_fn, max_number_length, batch_size, size,
             num_preprocess_threads=1, is_training=True):
-  filenames, length_labels, numbers_labels = data_generator_fn()
+  filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
 
   filename_queue = tf.train.string_input_producer(
     filenames, shuffle=False, capacity=batch_size * 3)
@@ -18,12 +18,14 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
     tf.constant(length_labels), shuffle=False, element_shape=(max_number_length, ), capacity=batch_size * 3)
   numbers_label_queue = tf.train.input_producer(
     tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
+  bbox_queue = tf.train.input_producer(
+    tf.constant(bboxes, dtype=tf.int32), shuffle=False, element_shape=(4, ), capacity=batch_size * 3)
 
   reader = tf.WholeFileReader()
   _, dequeued_record_string = reader.read(filename_queue)
 
   dequeued_img = tf.image.decode_png(dequeued_record_string, 3)
-  dequeued_img = _resize_image(dequeued_img, is_training, size)
+  dequeued_img = _resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size)
 
 
   return tf.train.batch(
@@ -31,13 +33,20 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def _resize_image(dequeued_img, is_training, size, channels=3):
+def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
   def image_summary(name, image):
-    # tf.summary.image(name, tf.expand_dims(image, 0))
+    tf.summary.image(name, tf.expand_dims(image, 0))
     pass
 
   dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
   image_summary("original_image", dequeued_img)
+
+  if dequeued_bbox is not None:
+    dequeued_img = dequeued_img[
+      dequeued_bbox[1]:dequeued_bbox[1]+dequeued_bbox[3], dequeued_bbox[0]:dequeued_bbox[0]+dequeued_bbox[2], :
+    ]
+    image_summary("bbox_image", dequeued_img)
+
   # dequeued_img = tf.image.resize_images(dequeued_img, [int(size[0] * 1.5), int(size[1] * 1.5)])
   dequeued_img = tf.image.resize_images(dequeued_img, [size[0], size[1]])
   image_summary("resized_images", dequeued_img)
@@ -57,7 +66,7 @@ def _resize_image(dequeued_img, is_training, size, channels=3):
 def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
 
   def handler():
-    filenames, length_labels, numbers_labels = [], [], []
+    filenames, bboxes, length_labels, numbers_labels = [], [], [], []
     metadata = metadata_generator(metadata_file_path)
 
     read_count = 0
@@ -71,6 +80,7 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
       filenames.append(filename)
       length_labels.append(length_label)
       numbers_labels.append(numbers_label)
+      bboxes.append(data.bbox())
 
       if read_count % 1000 == 0:
         tf.logging.info('readed %s records', read_count)
@@ -82,7 +92,7 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
       length_labels_nd[i, :] = length_label
       numbers_labels_nd[i, :, :] = numbers_labels[i]
 
-    return filenames, length_labels_nd, numbers_labels_nd
+    return filenames, bboxes, length_labels_nd, numbers_labels_nd
 
 
   return handler
@@ -109,7 +119,7 @@ def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_d
 
   def handler():
     metadata = pickle.load(open(metadata_file_path, 'rb'))
-    short_filenames, labels = metadata['filenames'], metadata['labels']
+    short_filenames, labels, bboxes = metadata['filenames'], metadata['labels'], metadata['bboxes']
 
     filenames = []
     length_labels = np.ndarray((len(short_filenames), max_number_length))
@@ -121,7 +131,7 @@ def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_d
       numbers_labels[i, :, :] = numbers_label
       filenames.append(filename)
 
-    return filenames, length_labels, numbers_labels
+    return filenames, bboxes, length_labels, numbers_labels
 
   return handler
 
@@ -160,7 +170,7 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
   data_queue = tf.train.input_producer(data, shuffle=False, element_shape=(28, 28, 1), capacity=batch_size * 3)
 
   dequeued_image = data_queue.dequeue()
-  dequeued_image = _resize_image(dequeued_image, is_training, size, channels=1)
+  dequeued_image = _resize_image(dequeued_image, None, is_training, size, channels=1)
 
   label_queue = tf.train.input_producer(label, shuffle=False, element_shape=(10, ), capacity=batch_size * 3)
 
