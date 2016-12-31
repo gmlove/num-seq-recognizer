@@ -8,28 +8,16 @@ from nsrec import inputs
 from nsrec.nets import lenet, alexnet, inception_v3
 from nsrec.np_ops import correct_count
 
-
-class CNNModelConfig(object):
+class CNNGeneralModelConfig(object):
 
   def __init__(self, **kwargs):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.data_dir_path = os.path.join(current_dir, '../data/train')
-    self.metadata_file_path = os.path.join(self.data_dir_path, 'digitStruct.mat')
-    self.max_number_length = 5
-    self.batch_size = 64
-    self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
+    self.num_classes = None
     self.net_type = "lenet"
     self.force_size = None
+    self.batch_size = 64
 
-    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
-                 'batch_size', 'force_size', 'create_metadata_handler_fn', 'net_type']:
+    for attr in ['num_classes', 'net_type', 'batch_size', 'force_size']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
-
-  @property
-  def size(self):
-    if self.force_size is not None:
-      return self.force_size
-    return [self.cnn_net.image_height, self.cnn_net.image_width]
 
   @property
   def cnn_net(self):
@@ -43,15 +31,28 @@ class CNNModelConfig(object):
       tf.logging.info('using lenet')
       return lenet
 
-class CNNGeneralModelConfig(CNNModelConfig):
+  @property
+  def size(self):
+    if self.force_size is not None:
+      return self.force_size
+    return [self.cnn_net.image_height, self.cnn_net.image_width]
+
+
+class CNNModelConfig(CNNGeneralModelConfig):
 
   def __init__(self, **kwargs):
-    super(CNNGeneralModelConfig, self).__init__(**kwargs)
+    super(CNNModelConfig, self).__init__(**kwargs)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.data_dir_path = os.path.join(current_dir, '../data/train')
+    self.metadata_file_path = os.path.join(self.data_dir_path, 'digitStruct.mat')
+    self.max_number_length = 5
+    self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
     self.num_classes = self.max_number_length
 
-    for attr in ['num_classes']:
+    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
+                 'create_metadata_handler_fn']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
-
 
 class CNNGeneralModelBase:
 
@@ -64,7 +65,7 @@ class CNNGeneralModelBase:
     self.is_training = True
 
   def _setup_input(self):
-    pass
+    raise Exception('Implement me in subclass')
 
   def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
@@ -83,6 +84,9 @@ class CNNGeneralModelBase:
     tf.summary.scalar("loss/total_loss", self.total_loss)
     for var in tf.trainable_variables():
       tf.summary.histogram(var.op.name, var)
+
+  def _setup_accuracy(self):
+    raise Exception('Implement me in subclass')
 
   def _setup_global_step(self):
     """Sets up the global step Tensor."""
