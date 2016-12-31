@@ -15,7 +15,7 @@ tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
 default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/metadata.pickle')
 tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta data file path.")
 
-tf.flags.DEFINE_integer("save_summaries_secs", 30, "Save summaries per secs.")
+tf.flags.DEFINE_integer("save_summaries_secs", 5, "Save summaries per secs.")
 
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 

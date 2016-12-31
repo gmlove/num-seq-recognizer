@@ -34,10 +34,13 @@ class CNNModelConfig(object):
   @property
   def cnn_net(self):
     if self.net_type == 'alexnet':
+      tf.logging.info('using alexnet')
       return alexnet
     elif self.net_type == 'inception_v3':
+      tf.logging.info('using inception_v3 net')
       return inception_v3
     else:
+      tf.logging.info('using lenet')
       return lenet
 
 class CNNGeneralModelConfig(CNNModelConfig):
@@ -60,9 +63,10 @@ class CNNGeneralModelBase:
     self.model_output = None
     self.is_training = True
 
-  def _build_base_net(self):
-    self._pre_build(self.config)
+  def _setup_input(self):
+    pass
 
+  def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
       net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
@@ -70,8 +74,32 @@ class CNNGeneralModelBase:
         net, variable_scope, end_points_collection,
         num_classes=self.config.num_classes, is_training=self.is_training, name_prefix='length')
 
-  def _pre_build(self):
-    pass
+  def _setup_loss(self):
+    with ops.name_scope(None, 'Loss') as sc:
+      loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.label_batches)
+      loss = tf.reduce_mean(loss)
+      self.total_loss = loss
+
+    tf.summary.scalar("loss/total_loss", self.total_loss)
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
+
+  def _setup_global_step(self):
+    """Sets up the global step Tensor."""
+    global_step = tf.Variable(
+      initial_value=0,
+      name="global_step",
+      trainable=False,
+      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
+
+    self.global_step = global_step
+
+  def build(self):
+    self._setup_input()
+    self._setup_net()
+    self._setup_loss()
+    self._setup_accuracy()
+    self._setup_global_step()
 
 
 class CNNMnistTrainModel(CNNGeneralModelBase):
@@ -84,42 +112,23 @@ class CNNMnistTrainModel(CNNGeneralModelBase):
     self.global_step = None
     self.train_accuracy = None
 
-  def _pre_build(self, config):
+  def _setup_input(self):
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.label_batches = \
-        inputs.mnist_batches(config.batch_size, config.size, is_training=self.is_training)
+        inputs.mnist_batches(self.config.batch_size, self.config.size, is_training=self.is_training)
 
-  def build(self):
-    self._build_base_net()
+  def _setup_accuracy(self):
+    self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
-    with ops.name_scope(None, 'Loss') as sc:
-      loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.label_batches)
-      loss = tf.reduce_mean(loss)
-      self.total_loss = loss
 
-    tf.summary.scalar("loss/total_loss", self.total_loss)
-    for var in tf.trainable_variables():
-      tf.summary.histogram(var.op.name, var)
+def softmax_accuracy(logits, label_batches, scope_name):
+  with ops.name_scope(None, scope_name) as sc:
+    correct_prediction = tf.equal(
+      tf.argmax(tf.nn.softmax(logits), 1),
+      tf.argmax(label_batches, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-    with ops.name_scope(None, 'accuracy/train') as sc:
-      correct_prediction = tf.equal(
-        tf.argmax(tf.nn.softmax(self.model_output), 1),
-        tf.argmax(self.label_batches, 1))
-      self.train_accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-    tf.summary.scalar("accuracy/train", self.train_accuracy)
-
-    self.setup_global_step()
-
-  def setup_global_step(self):
-    """Sets up the global step Tensor."""
-    global_step = tf.Variable(
-      initial_value=0,
-      name="global_step",
-      trainable=False,
-      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
-
-    self.global_step = global_step
+    tf.summary.scalar(scope_name, accuracy)
 
 
 class CNNLengthTrainModel(CNNGeneralModelBase):
@@ -130,37 +139,17 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     self.total_loss = None
     self.global_step = None
 
-  def _pre_build(self, config):
+  def _setup_input(self):
+    config = self.config
     with ops.name_scope(None, 'Input') as sc:
       metadata_handler = config.create_metadata_handler_fn(
         config.metadata_file_path, config.max_number_length, config.data_dir_path)
-      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+      self.data_batches, self.label_batches, _ = \
         inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training)
 
-  def build(self):
-    self._build_base_net()
-
-    with ops.name_scope(None, 'Loss') as sc:
-      length_loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.length_label_batches)
-      length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
-      self.total_loss = length_loss
-
-    tf.summary.scalar("loss/total_loss", self.total_loss)
-    for var in tf.trainable_variables():
-      tf.summary.histogram(var.op.name, var)
-
-    self.setup_global_step()
-
-  def setup_global_step(self):
-    """Sets up the global step Tensor."""
-    global_step = tf.Variable(
-      initial_value=0,
-      name="global_step",
-      trainable=False,
-      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
-
-    self.global_step = global_step
+  def _setup_accuracy(self):
+    self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
 
 class CNNModelBase:
