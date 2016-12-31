@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNModelConfig, CNNTrainModel, CNNLengthTrainModel, CNNMnistTrainModel, \
+from nsrec.cnn_model import CNNNSRModelConfig, CNNNSRTrainModel, CNNLengthTrainModel, CNNMnistTrainModel, \
   CNNGeneralModelConfig
 
 FLAGS = tf.app.flags.FLAGS
@@ -52,10 +52,10 @@ def learning_rate_fn(batch_size):
 
 
 def create_model():
-  config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                          batch_size=FLAGS.batch_size,
-                          net_type=FLAGS.net_type,
-                          max_number_length=FLAGS.max_number_length)
+  config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                             batch_size=FLAGS.batch_size,
+                             net_type=FLAGS.net_type,
+                             max_number_length=FLAGS.max_number_length)
   if FLAGS.cnn_model_type == 'length':
     return CNNLengthTrainModel(config)
   elif FLAGS.cnn_model_type == 'mnist':
@@ -64,7 +64,7 @@ def create_model():
                                    num_classes=10)
     return CNNMnistTrainModel(config)
   else:
-    return CNNTrainModel(config)
+    return CNNNSRTrainModel(config)
 
 
 def main(unused_argv):

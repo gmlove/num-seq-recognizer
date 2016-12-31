@@ -19,15 +19,22 @@ class CNNGeneralModelConfig(object):
     for attr in ['num_classes', 'net_type', 'batch_size', 'force_size']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
+    self.final_cnn_net = None
+
   @property
   def cnn_net(self):
+    if self.final_cnn_net:
+      return self.final_cnn_net
     if self.net_type == 'alexnet':
       tf.logging.info('using alexnet')
+      self.final_cnn_net = alexnet
       return alexnet
     elif self.net_type == 'inception_v3':
       tf.logging.info('using inception_v3 net')
+      self.final_cnn_net = inception_v3
       return inception_v3
     else:
+      self.final_cnn_net = lenet
       tf.logging.info('using lenet')
       return lenet
 
@@ -38,10 +45,10 @@ class CNNGeneralModelConfig(object):
     return [self.cnn_net.image_height, self.cnn_net.image_width]
 
 
-class CNNModelConfig(CNNGeneralModelConfig):
+class CNNNSRModelConfig(CNNGeneralModelConfig):
 
   def __init__(self, **kwargs):
-    super(CNNModelConfig, self).__init__(**kwargs)
+    super(CNNNSRModelConfig, self).__init__(**kwargs)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     self.data_dir_path = os.path.join(current_dir, '../data/train')
@@ -156,7 +163,7 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
 
-class CNNModelBase:
+class CNNNSRModelBase:
 
   def __init__(self, config):
     self.config = config
@@ -186,10 +193,10 @@ class CNNModelBase:
   def _pre_build(self):
     pass
 
-class CNNTrainModel(CNNModelBase):
+class CNNNSRTrainModel(CNNNSRModelBase):
 
   def __init__(self, config):
-    super(CNNTrainModel, self).__init__(config)
+    super(CNNNSRTrainModel, self).__init__(config)
 
     self.total_loss = None
     self.global_step = None
@@ -237,14 +244,14 @@ class CNNTrainModel(CNNModelBase):
     self.global_step = global_step
 
 
-class CNNEvalModel(CNNTrainModel):
+class CNNNSREvalModel(CNNNSRTrainModel):
 
   def __init__(self, config):
-    super(CNNEvalModel, self).__init__(config)
+    super(CNNNSREvalModel, self).__init__(config)
     self.is_training = False
 
   def build(self):
-    super(CNNEvalModel, self).build()
+    super(CNNNSREvalModel, self).build()
 
     with ops.name_scope(None, 'EvalOutput') as sc:
       self.length_label_batches_pd = tf.nn.softmax(self.length_output, name="length_output/softmax")
@@ -278,5 +285,5 @@ class CNNEvalModel(CNNTrainModel):
                          length_label_batches_pd, normalized_numbers_label_batches_pd)
 
 
-class CNNPredictModel(CNNModelBase):
+class CNNNSRPredictModel(CNNNSRModelBase):
   pass

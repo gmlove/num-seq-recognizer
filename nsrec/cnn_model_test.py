@@ -28,11 +28,11 @@ class CNNModelTest(tf.test.TestCase):
   def test_train_model_with_mat_metadata(self):
     self.run_test(DataReaderTest.createTestMatMetadata, inputs.create_mat_metadata_handler)
 
-  def run_test(self, create_metadata_fn, create_metadata_handler_fn, model_cls=CNNTrainModel):
+  def run_test(self, create_metadata_fn, create_metadata_handler_fn, model_cls=CNNNSRTrainModel):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = create_metadata_fn(25, metadata_dir_path)
-    config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
-                              create_metadata_handler_fn=create_metadata_handler_fn)
+    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
+                               create_metadata_handler_fn=create_metadata_handler_fn)
 
     with self.test_session():
       model = model_cls(config)
@@ -47,11 +47,11 @@ class CNNModelTest(tf.test.TestCase):
   def test_evaluation_correct_count(self):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
     metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
-    config = CNNModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
-                            create_metadata_handler_fn=inputs.create_pickle_metadata_handler)
+    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
+                               create_metadata_handler_fn=inputs.create_pickle_metadata_handler)
 
     with self.test_session() as sess:
-      model = CNNEvalModel(config)
+      model = CNNNSREvalModel(config)
       model.build()
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])

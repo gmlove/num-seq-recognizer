@@ -13,7 +13,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNModelConfig, CNNEvalModel
+from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel
 
 FLAGS = tf.flags.FLAGS
 
@@ -142,9 +142,9 @@ def run():
   g = tf.Graph()
   with g.as_default(), tf.device('/cpu:0'):
     # Build the model for evaluation.
-    model_config = CNNModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                                  data_dir_path=FLAGS.data_dir_path)
-    model = CNNEvalModel(model_config)
+    model_config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                                     data_dir_path=FLAGS.data_dir_path)
+    model = CNNNSREvalModel(model_config)
     model.build()
 
     # Create the Saver to restore model Variables.
