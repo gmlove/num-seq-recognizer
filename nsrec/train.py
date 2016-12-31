@@ -37,7 +37,7 @@ train_dir = os.path.join(current_dir, '../output/train')
 def learning_rate_fn(batch_size):
   num_epochs_per_decay = 8.0
   learning_rate = tf.constant(FLAGS.learning_rate)
-  num_batches_per_epoch = (1000 / batch_size)
+  num_batches_per_epoch = (10000 / batch_size)
   decay_steps = int(num_batches_per_epoch * num_epochs_per_decay)
 
   def learning_rate_decay_fn(learning_rate, global_step):
