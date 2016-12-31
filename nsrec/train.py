@@ -3,7 +3,7 @@ import os
 import tensorflow as tf
 
 from nsrec.cnn_model import CNNNSRModelConfig, CNNNSRTrainModel, CNNLengthTrainModel, CNNMnistTrainModel, \
-  CNNGeneralModelConfig
+  CNNGeneralModelConfig, create_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -21,7 +21,8 @@ tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet"
 
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
 
-tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
+tf.flags.DEFINE_string("cnn_model_type", "all",
+                       "Model type. mnist: mnist model; all: approximate all numbers; length: only approximate length")
 
 tf.flags.DEFINE_string("optimizer", "SGD", "Optimizer: SGD")
 
@@ -51,22 +52,6 @@ def learning_rate_fn(batch_size):
   return learning_rate, learning_rate_decay_fn
 
 
-def create_model():
-  config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                             batch_size=FLAGS.batch_size,
-                             net_type=FLAGS.net_type,
-                             max_number_length=FLAGS.max_number_length)
-  if FLAGS.cnn_model_type == 'length':
-    return CNNLengthTrainModel(config)
-  elif FLAGS.cnn_model_type == 'mnist':
-    config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
-                                   net_type=FLAGS.net_type,
-                                   num_classes=10)
-    return CNNMnistTrainModel(config)
-  else:
-    return CNNNSRTrainModel(config)
-
-
 def main(unused_argv):
   if not os.path.exists(train_dir):
     tf.logging.info("Creating training directory: %s", train_dir)
@@ -74,7 +59,7 @@ def main(unused_argv):
 
   g = tf.Graph()
   with g.as_default():
-    model = create_model()
+    model = create_model(FLAGS)
     model.build()
 
     learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size)

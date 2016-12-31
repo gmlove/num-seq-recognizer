@@ -13,7 +13,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel
+from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel, create_model
 
 FLAGS = tf.flags.FLAGS
 
@@ -32,7 +32,7 @@ tf.flags.DEFINE_string("checkpoint_dir", default_checkpoint_dir,
 default_eval_dir = os.path.join(current_dir, '../output/eval')
 tf.flags.DEFINE_string("eval_dir", default_eval_dir, "Directory to write event logs.")
 
-tf.flags.DEFINE_integer("eval_interval_secs", 60,
+tf.flags.DEFINE_integer("eval_interval_secs", 20,
                         "Interval between evaluation runs.")
 tf.flags.DEFINE_integer("num_eval_examples", 10132,
                         "Number of examples for evaluation.")
@@ -40,6 +40,10 @@ tf.flags.DEFINE_integer("num_eval_examples", 10132,
 tf.flags.DEFINE_integer("min_global_step", 500,
                         "Minimum global step to run evaluation.")
 
+tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
+tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
+tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
+tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
 
 def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   """
@@ -75,7 +79,7 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   summary = tf.Summary()
   value = summary.value.add()
   value.simple_value = accuracy
-  value.tag = "Accuracy"
+  value.tag = "accuracy/eval"
   summary_writer.add_summary(summary, global_step)
 
   # Write the Events file to the eval directory.
@@ -142,9 +146,7 @@ def run():
   g = tf.Graph()
   with g.as_default(), tf.device('/cpu:0'):
     # Build the model for evaluation.
-    model_config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                                     data_dir_path=FLAGS.data_dir_path)
-    model = CNNNSREvalModel(model_config)
+    model = create_model(FLAGS, 'eval')
     model.build()
 
     # Create the Saver to restore model Variables.

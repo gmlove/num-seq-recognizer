@@ -59,6 +59,8 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
                  'create_metadata_handler_fn']:
+      if kwargs.get(attr, None) is None:
+        continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
 class CNNGeneralModelBase:
@@ -93,7 +95,7 @@ class CNNGeneralModelBase:
       tf.summary.histogram(var.op.name, var)
 
   def _setup_accuracy(self):
-    raise Exception('Implement me in subclass')
+    pass
 
   def _setup_global_step(self):
     """Sets up the global step Tensor."""
@@ -141,6 +143,8 @@ def softmax_accuracy(logits, label_batches, scope_name):
 
     tf.summary.scalar(scope_name, accuracy)
 
+    return accuracy
+
 
 class CNNLengthTrainModel(CNNGeneralModelBase):
 
@@ -149,6 +153,7 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
 
     self.total_loss = None
     self.global_step = None
+    self.train_accuracy = None
 
   def _setup_input(self):
     config = self.config
@@ -163,20 +168,14 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
 
-class CNNNSRModelBase:
+class CNNNSRModelBase(CNNGeneralModelBase):
 
   def __init__(self, config):
-    self.config = config
-    self.cnn_net = config.cnn_net
-    self.variables = None
-    self.data_batches = None
+    super(CNNNSRModelBase, self).__init__(config)
     self.length_output = None
     self.numbers_output = None
-    self.is_training = True
 
-  def _build_base_net(self):
-    self._pre_build(self.config)
-
+  def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
       end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
       net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
@@ -190,8 +189,6 @@ class CNNNSRModelBase:
           is_training=self.is_training, num_classes=10, name_prefix='number%s' % (i + 1))
         self.numbers_output.append(number_output)
 
-  def _pre_build(self):
-    pass
 
 class CNNNSRTrainModel(CNNNSRModelBase):
 
@@ -200,49 +197,69 @@ class CNNNSRTrainModel(CNNNSRModelBase):
 
     self.total_loss = None
     self.global_step = None
+    self.max_number_length = self.config.max_number_length
+    self.batch_size = config.batch_size
+    self.train_accuracy = None
+    self.numbers_label_batches = []
 
-  def _pre_build(self, config):
+  def _setup_input(self):
+    config = self.config
     with ops.name_scope(None, 'Input') as sc:
       metadata_handler = config.create_metadata_handler_fn(
         config.metadata_file_path, config.max_number_length, config.data_dir_path)
-      self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+      self.data_batches, self.length_label_batches, numbers_label_batches = \
         inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training)
+      for i in range(self.max_number_length):
+        self.numbers_label_batches.append(numbers_label_batches[:, i, :])
 
-  def build(self):
-    self._build_base_net()
-
+  def _setup_loss(self):
     number_losses = []
     with ops.name_scope(None, 'Loss') as sc:
       length_loss = tf.nn.softmax_cross_entropy_with_logits(self.length_output, self.length_label_batches)
       length_loss = tf.log(tf.reduce_sum(length_loss), 'length_loss')
       self.total_loss = length_loss
 
-      for i in range(self.config.max_number_length):
-        number_loss = tf.nn.softmax_cross_entropy_with_logits(self.numbers_output[i], self.numbers_label_batches[:,i,:])
+      for i in range(self.max_number_length):
+        number_loss = tf.nn.softmax_cross_entropy_with_logits(self.numbers_output[i], self.numbers_label_batches[i])
         number_loss = tf.log(tf.reduce_sum(number_loss), 'number%s_loss' % (i + 1))
         number_losses.append(number_loss)
         self.total_loss = self.total_loss + number_loss
 
     tf.summary.scalar("loss/length_loss", length_loss)
-    for i in range(self.config.max_number_length):
+    for i in range(self.max_number_length):
       tf.summary.scalar("loss/number%s_loss" % (i + 1), number_losses[i])
     tf.summary.scalar("loss/total_loss", self.total_loss)
     for var in tf.trainable_variables():
       tf.summary.histogram(var.op.name, var)
 
-    self.setup_global_step()
+  def _setup_accuracy(self):
+    op_name = 'train/accuracy'
+    with ops.name_scope(None, op_name) as sc:
 
-  def setup_global_step(self):
-    """Sets up the global step Tensor."""
-    global_step = tf.Variable(
-      initial_value=0,
-      name="global_step",
-      trainable=False,
-      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
+      length_prediction = tf.equal(
+        tf.argmax(tf.nn.softmax(self.length_output), 1),
+        tf.argmax(self.length_label_batches, 1))
+      assert length_prediction.get_shape().as_list() == [self.batch_size, ]
 
-    self.global_step = global_step
+      length_prediction = tf.reshape(length_prediction, [self.batch_size, 1])
 
+      predictions = [length_prediction]
+      for i in range(self.max_number_length):
+        number_prediction = tf.equal(
+          tf.argmax(tf.nn.softmax(self.numbers_output[i]), 1),
+          tf.argmax(self.numbers_label_batches[i], 1))
+        assert number_prediction.get_shape().as_list() == [self.batch_size, ]
+        number_prediction = tf.reshape(number_prediction, [self.batch_size, 1])
+
+        predictions.append(number_prediction)
+
+    predictions = tf.reduce_all(tf.concat(1, predictions), 1)
+    assert predictions.get_shape().as_list() == [self.batch_size, ]
+
+    self.train_accuracy = tf.reduce_mean(tf.cast(predictions, tf.float32))
+
+    tf.summary.scalar(op_name, self.train_accuracy)
 
 class CNNNSREvalModel(CNNNSRTrainModel):
 
@@ -250,40 +267,38 @@ class CNNNSREvalModel(CNNNSRTrainModel):
     super(CNNNSREvalModel, self).__init__(config)
     self.is_training = False
 
-  def build(self):
-    super(CNNNSREvalModel, self).build()
-
-    with ops.name_scope(None, 'EvalOutput') as sc:
-      self.length_label_batches_pd = tf.nn.softmax(self.length_output, name="length_output/softmax")
-      self.numbers_label_batches_pd = []
-      for i in range(self.config.max_number_length):
-        number_prob_distribution = tf.nn.softmax(self.numbers_output[i], name="number%s_output/softmax" % i)
-        self.numbers_label_batches_pd.append(number_prob_distribution)
-
   def correct_count(self, sess):
-    calculated_values = sess.run({
-      'length_label_batches': self.length_label_batches,
-      'numbers_label_batches': self.numbers_label_batches,
-      'length_label_batches_pd': self.length_label_batches_pd,
-      'numbers_label_batches_pd': self.numbers_label_batches_pd
-    })
-    length_label_batches, numbers_label_batches, \
-    length_label_batches_pd, numbers_label_batches_pd = \
-      calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
-      calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
-
-    # numbers_label_batches.shape is (batch_size, max_number_length, 10)
-    # numbers_label_batches_pd.shape is (max_number_length, batch_size, 10)
-    # transform numbers_label_batches_pd to be the same as numbers_label_batches
-    normalized_numbers_label_batches_pd = []
-    for i in range(self.config.batch_size):
-      normalized_numbers_label_batches_pd.append([])
-      for j in range(self.config.max_number_length):
-        normalized_numbers_label_batches_pd[i].append(numbers_label_batches_pd[j][i])
-
-    return correct_count(length_label_batches, numbers_label_batches,
-                         length_label_batches_pd, normalized_numbers_label_batches_pd)
+    train_accuracy = sess.run(self.train_accuracy)
+    return train_accuracy * self.config.batch_size
 
 
 class CNNNSRPredictModel(CNNNSRModelBase):
   pass
+
+
+def create_model(FLAGS, mode='train'):
+  assert mode in ['train', 'eval', 'predict']
+
+  model_clz = {
+    'length-train': CNNLengthTrainModel,
+    'length-eval': CNNNSREvalModel,
+    'mnist-train': CNNMnistTrainModel,
+    'all-train': CNNNSRTrainModel,
+    'all-eval': CNNNSREvalModel
+  }
+
+  key = '%s-%s' % (FLAGS.cnn_model_type, mode)
+  if key not in model_clz:
+    raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
+
+  if FLAGS.cnn_model_type in ['length', 'all']:
+    config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                               batch_size=FLAGS.batch_size,
+                               net_type=FLAGS.net_type,
+                               max_number_length=FLAGS.max_number_length)
+  else:
+    config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
+                                   net_type=FLAGS.net_type,
+                                   num_classes=10)
+
+  return model_clz[key](config)
