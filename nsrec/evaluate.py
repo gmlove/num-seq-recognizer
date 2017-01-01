@@ -14,6 +14,7 @@ import numpy as np
 import tensorflow as tf
 
 from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel, create_model
+from nsrec.debug import inspect_tensors
 
 FLAGS = tf.flags.FLAGS
 
@@ -65,6 +66,7 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   start_time = time.time()
   total_correct_count = 0
   for i in range(num_eval_batches):
+    print('batch:', i)
     correct_count = model.correct_count(sess)
     total_correct_count += correct_count
     if not i % 10:
@@ -86,7 +88,6 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   summary_writer.flush()
   tf.logging.info("Finished processing evaluation at global step %d.",
                   global_step)
-
 
 def run_once(model, saver, summary_writer, summary_op):
   """Evaluates the latest model checkpoint.

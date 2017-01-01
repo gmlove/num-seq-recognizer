@@ -4,6 +4,8 @@ import h5py
 from six.moves import cPickle as pickle
 import tensorflow as tf
 import numpy as np
+
+from nsrec.debug import tensors_to_inspect
 from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 

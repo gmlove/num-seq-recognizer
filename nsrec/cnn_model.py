@@ -21,6 +21,11 @@ class CNNGeneralModelConfig(object):
 
     self.final_cnn_net = None
 
+  def __str__(self):
+    return 'Config(%s)' % ', '.join(
+      ['%s=%s'%(attr, getattr(self, attr))
+       for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self, attr))])
+
   @property
   def cnn_net(self):
     if self.final_cnn_net:
@@ -114,6 +119,7 @@ class CNNGeneralModelBase:
     self.global_step = global_step
 
   def build(self):
+    tf.logging.info('using config: %s', self.config)
     self._setup_input()
     self._setup_net()
     self._setup_loss()
@@ -302,6 +308,7 @@ def create_model(FLAGS, mode='train'):
 
   if FLAGS.cnn_model_type in ['length', 'all']:
     config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                               data_dir_path=FLAGS.data_dir_path,
                                batch_size=FLAGS.batch_size,
                                net_type=FLAGS.net_type,
                                max_number_length=FLAGS.max_number_length)

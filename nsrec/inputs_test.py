@@ -41,6 +41,12 @@ class InputTest(tf.test.TestCase):
 
     self._test_batches(metadata_file_path, inputs.create_mat_metadata_handler)
 
+  def test_batches_from_test_pickle(self):
+    data_dir_path= os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/test/')
+    metadata_file_path = os.path.join(data_dir_path, 'metadata.pickle')
+
+    self._test_batches(metadata_file_path, inputs.create_pickle_metadata_handler, data_dir_path=data_dir_path)
+
   def test_batches_from_pickle(self):
     metadata_file_path = self._test_metadata_file_path()
 
@@ -56,8 +62,9 @@ class InputTest(tf.test.TestCase):
                        one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 8]), np.array([[0, 0, 1] + [0] * 7]))
 
   def _test_batches(self, metadata_file_path, metadata_handler_fn, max_number_length=5,
-                    expected_length_labels=None, expected_numbers_labels=None, expected_numbers_labels_1=None):
-    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
+                    expected_length_labels=None, expected_numbers_labels=None,
+                    expected_numbers_labels_1=None, data_dir_path=None):
+    data_dir_path = data_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
 
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
