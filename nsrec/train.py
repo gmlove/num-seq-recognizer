@@ -12,7 +12,7 @@ tf.flags.DEFINE_integer("log_every_n_steps", 1,
 tf.flags.DEFINE_integer("number_of_steps", 5000, "Number of training steps.")
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
 
-default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data/metadata.pickle')
+default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train/metadata.pickle')
 tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta data file path.")
 
 tf.flags.DEFINE_integer("save_summaries_secs", 5, "Save summaries per secs.")

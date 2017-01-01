@@ -14,6 +14,8 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
             num_preprocess_threads=1, is_training=True):
   filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
 
+  tf.logging.info('input data count: %s', len(filenames))
+
   filename_queue = tf.train.string_input_producer(
     filenames, shuffle=False, capacity=batch_size * 3)
   length_label_queue = tf.train.input_producer(

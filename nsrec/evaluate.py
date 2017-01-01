@@ -66,7 +66,6 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   start_time = time.time()
   total_correct_count = 0
   for i in range(num_eval_batches):
-    print('batch:', i)
     correct_count = model.correct_count(sess)
     total_correct_count += correct_count
     if not i % 10:

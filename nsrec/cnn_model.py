@@ -6,6 +6,7 @@ from tensorflow.python.framework import ops
 
 from nsrec import inputs
 from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr
+from nsrec.np_ops import correct_count
 
 
 class CNNGeneralModelConfig(object):
@@ -246,31 +247,9 @@ class CNNNSRTrainModel(CNNNSRModelBase):
       tf.summary.histogram(var.op.name, var)
 
   def _setup_accuracy(self, op_name='accuracy/train'):
-    with ops.name_scope(None, op_name) as sc:
-
-      length_prediction = tf.equal(
-        tf.argmax(tf.nn.softmax(self.length_output), 1),
-        tf.argmax(self.length_label_batches, 1))
-      assert length_prediction.get_shape().as_list() == [self.batch_size, ]
-
-      length_prediction = tf.reshape(length_prediction, [self.batch_size, 1])
-
-      predictions = [length_prediction]
-      for i in range(self.max_number_length):
-        number_prediction = tf.equal(
-          tf.argmax(tf.nn.softmax(self.numbers_output[i]), 1),
-          tf.argmax(self.numbers_label_batches[i], 1))
-        assert number_prediction.get_shape().as_list() == [self.batch_size, ]
-        number_prediction = tf.reshape(number_prediction, [self.batch_size, 1])
-
-        predictions.append(number_prediction)
-
-    predictions = tf.reduce_all(tf.concat(1, predictions), 1)
-    assert predictions.get_shape().as_list() == [self.batch_size, ]
-
-    self.train_accuracy = tf.reduce_mean(tf.cast(predictions, tf.float32))
-
-    tf.summary.scalar(op_name, self.train_accuracy)
+    softmax_accuracy(self.length_output, self.length_label_batches, 'accuracy/train/length')
+    for i in range(self.max_number_length):
+      softmax_accuracy(self.numbers_output[i], self.numbers_label_batches[i], 'accuracy/train/number%s' % (i + 1))
 
 
 class CNNNSREvalModel(CNNNSRTrainModel):
@@ -280,11 +259,27 @@ class CNNNSREvalModel(CNNNSRTrainModel):
     self.is_training = False
 
   def _setup_accuracy(self, op_name='accuracy/eval'):
-    super(CNNNSREvalModel, self)._setup_accuracy(op_name)
+    self.length_label_batches_pd = tf.nn.softmax(self.length_output)
+    self.numbers_label_batches_pd = [None] * self.max_number_length
+    for i in range(self.max_number_length):
+      self.numbers_label_batches_pd[i] = tf.nn.softmax(self.numbers_output[i])
+
 
   def correct_count(self, sess):
-    train_accuracy = sess.run(self.train_accuracy)
-    return train_accuracy * self.config.batch_size
+    calculated_values = sess.run({
+      'length_label_batches': self.length_label_batches,
+      'numbers_label_batches': self.numbers_label_batches,
+      'length_label_batches_pd': self.length_label_batches_pd,
+      'numbers_label_batches_pd': self.numbers_label_batches_pd
+    })
+    length_label_batches, numbers_label_batches, \
+    length_label_batches_pd, numbers_label_batches_pd = \
+      calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
+      calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
+
+    return correct_count(length_label_batches, numbers_label_batches,
+                         length_label_batches_pd, numbers_label_batches_pd)
+
 
 
 class CNNNSRPredictModel(CNNNSRModelBase):

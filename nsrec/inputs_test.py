@@ -41,12 +41,6 @@ class InputTest(tf.test.TestCase):
 
     self._test_batches(metadata_file_path, inputs.create_mat_metadata_handler)
 
-  def test_batches_from_test_pickle(self):
-    data_dir_path= os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/test/')
-    metadata_file_path = os.path.join(data_dir_path, 'metadata.pickle')
-
-    self._test_batches(metadata_file_path, inputs.create_pickle_metadata_handler, data_dir_path=data_dir_path)
-
   def test_batches_from_pickle(self):
     metadata_file_path = self._test_metadata_file_path()
 
