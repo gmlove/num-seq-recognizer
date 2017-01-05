@@ -16,14 +16,12 @@ class DataPreprocessorTest(tf.test.TestCase):
     filenames, labels, bboxes = real_main(
       metadata_file_path,
       5,
-      os.path.join(metadata_dir_path, 'metadata-expanded.pickle'),
       os.path.join(metadata_dir_path, '../../data/train'),
       rand_box_count=0)
     self.assertEqual(len(filenames), 25)
     filenames, labels, bboxes = real_main(
       metadata_file_path,
       5,
-      os.path.join(metadata_dir_path, 'metadata-expanded.pickle'),
       os.path.join(metadata_dir_path, '../../data/train'),
       rand_box_count=5)
     self.assertEqual(len(filenames), 25 * 5)
