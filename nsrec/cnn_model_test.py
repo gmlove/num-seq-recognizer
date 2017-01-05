@@ -66,9 +66,7 @@ class CNNModelTest(tf.test.TestCase):
       coord.join(threads, stop_grace_period_secs=10)
 
   def test_inference(self):
-    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
-    images_to_infer = ','.join([os.path.join(data_dir_path, '1.png'), os.path.join(data_dir_path, '2.png')])
-    config = CNNNSRInferModelConfig(images_to_infer=images_to_infer)
+    config = CNNNSRInferModelConfig()
 
     with self.test_session() as sess:
       model = CNNNSRInferenceModel(config)
@@ -76,8 +74,8 @@ class CNNModelTest(tf.test.TestCase):
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
-      labels = model.infer(sess)
-      print('infered labels for image 1.png and 2.png: %s' % (labels, ))
+      labels = model.infer(sess, [np.ones((100, 100, 3)), np.ones((100, 100, 3))])
+      print('infered labels for data: %s' % (labels, ))
 
 
 

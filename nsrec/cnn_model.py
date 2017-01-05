@@ -1,4 +1,5 @@
 import os
+from functools import reduce
 
 import numpy as np
 import tensorflow as tf
@@ -62,14 +63,13 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     self.data_dir_path = os.path.join(current_dir, '../data/train')
-    self.metadata_file_path = os.path.join(self.data_dir_path, 'digitStruct.mat')
+    self.metadata_file_path = os.path.join(self.data_dir_path, 'metadata.pickle')
     self.max_number_length = 5
     self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
     self.num_classes = self.max_number_length
-    self.images_to_infer = None
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
-                 'create_metadata_handler_fn', 'images_to_infer']:
+                 'create_metadata_handler_fn']:
       if kwargs.get(attr, None) is None:
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
@@ -301,17 +301,12 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
 
   def __init__(self, config):
     super(CNNNSRInferenceModel, self).__init__(config)
-    self.images_to_infer = [s.strip() for s in config.images_to_infer.split(',')]
     self.length_pb = None
     self.numbers_pb = []
+    self.is_training = False
 
   def _setup_input(self):
-    img_constants = []
-    for img_filename in self.images_to_infer:
-      img_constants.append(inputs.read_file(img_filename, self.config.size))
-    imgs_constant = tf.stack(img_constants)
-
-    self.data_batches = img_constants
+    self.data_batches = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3))
 
   def _setup_loss(self):
     pass
@@ -322,26 +317,36 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     for i in range(self.max_number_length):
       self.numbers_pb.append(tf.nn.softmax(self.numbers_output[i]))
 
-  def infer(self, sess):
-    length_pb, numbers_pb = sess.run([self.length_pb, self.numbers_pb])
+  def infer(self, sess, data):
+    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
+    length_pb, numbers_pb = sess.run(
+      [self.length_pb, self.numbers_pb],
+      feed_dict={self.data_batches: input_data})
     length = np.argmax(length_pb, axis=1)
     numbers = np.argmax(numbers_pb, axis=2)
+
     labels = []
+    length_prob = lambda i: length_pb[i][length[i]]
+    number_prob = lambda i, j: numbers_pb[j][i][numbers[j][i]]
+
     for i in range(len(length)):
-      label = ''.join([str(n) for n in numbers[i][:length[i] + 1]])
-      labels.append(label)
+      label = ''.join([str(n) for n in numbers[:length[i] + 1, i]])
+      probabilities = [length_prob(i)] + [number_prob(i, j) for j in range(length[i] + 1)]
+      reduced_prob = reduce(lambda x, y: x * y, probabilities)
+      labels.append((label, probabilities, reduced_prob))
     return labels
 
 
 def create_model(FLAGS, mode='train'):
-  assert mode in ['train', 'eval', 'predict']
+  assert mode in ['train', 'eval', 'inference']
 
   model_clz = {
     'length-train': CNNLengthTrainModel,
     'length-eval': CNNNSREvalModel,
     'mnist-train': CNNMnistTrainModel,
     'all-train': CNNNSRTrainModel,
-    'all-eval': CNNNSREvalModel
+    'all-eval': CNNNSREvalModel,
+    'all-inference': CNNNSRInferenceModel
   }
 
   key = '%s-%s' % (FLAGS.cnn_model_type, mode)
@@ -349,11 +354,15 @@ def create_model(FLAGS, mode='train'):
     raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
 
   if FLAGS.cnn_model_type in ['length', 'all']:
-    config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                               data_dir_path=FLAGS.data_dir_path,
-                               batch_size=FLAGS.batch_size,
-                               net_type=FLAGS.net_type,
-                               max_number_length=FLAGS.max_number_length)
+    if mode in ['train', 'eval']:
+      config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
+                                 data_dir_path=FLAGS.data_dir_path,
+                                 batch_size=FLAGS.batch_size,
+                                 net_type=FLAGS.net_type,
+                                 max_number_length=FLAGS.max_number_length)
+    else:
+      config = CNNNSRInferModelConfig(net_type=FLAGS.net_type,
+                                      max_number_length=FLAGS.max_number_length)
   else:
     config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
                                    net_type=FLAGS.net_type,

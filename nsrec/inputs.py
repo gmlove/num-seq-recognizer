@@ -185,9 +185,17 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def read_file(img_file, size):
+def read_img(img_file, bbox):
   image = ndimage.imread(img_file)
+  image = image[
+    bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2], :
+  ]
+  return image
+
+
+def normalize_img(image, size):
   image = misc.imresize(image, size).astype(np.float32)
   image = (image- pixel_depth / 2) / pixel_depth
   assert image.shape == (size[0], size[1], 3)
-  return tf.constant(image)
+  return image
+
