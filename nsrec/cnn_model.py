@@ -215,7 +215,7 @@ class CNNNSRModelBase(CNNGeneralModelBase):
       for i in range(self.config.max_number_length):
         number_output, _ = self.cnn_net.fc_layers(
           net, variable_scope, end_points_collection,
-          is_training=self.is_training, num_classes=10, name_prefix='number%s' % (i + 1))
+          is_training=self.is_training, num_classes=11, name_prefix='number%s' % (i + 1))
         self.numbers_output.append(number_output)
 
 
