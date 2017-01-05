@@ -2,7 +2,11 @@ import numpy as np
 
 
 def one_hot(num, max_num):
-  assert 0 < num <= max_num, '0 < num <= max_num, max_num=%s, num=%s' % (max_num, num)
+  if isinstance(num, np.ndarray):
+    for n in num:
+      assert 0 < n <= max_num, '0 < num <= max_num, max_num=%s, num=%s' % (max_num, n)
+  else:
+    assert 0 < num <= max_num, '0 < num <= max_num, max_num=%s, num=%s' % (max_num, num)
   return np.eye(max_num)[num - 1]
 
 
