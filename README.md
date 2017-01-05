@@ -35,6 +35,12 @@ python3 nsrec/data_preprocessor.py \
     --output_file_path=./data/extra/metadata.pickle \
     --rand_bbox_count=0
 
+python3 nsrec/data_preprocessor.py \
+    --mat_metadata_file_path=./data/extra/digitStruct.mat,./data/extra/digitStruct.mat \
+    --data_dir_path=./data/extra,./data/train \
+    --output_file_path=./data/extra/metadata.pickle \
+    --rand_bbox_count=0
+
 ```
 
 ### train:

@@ -10,8 +10,10 @@ from nsrec.inputs import metadata_generator
 FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_string("mat_metadata_file_path", "",
-                       "Mat format metadata file path.")
+                       "Mat format metadata file path, use ',' to separate multiple files.")
 tf.flags.DEFINE_string("data_dir_path", "",
+                       "Mat format metadata file path, use ',' to separate multiple paths, should be in the same order as mat_metadata_file_path.")
+tf.flags.DEFINE_string("final_data_dir_path", "",
                        "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
@@ -26,14 +28,28 @@ def main(args, **kwargs):
   assert FLAGS.output_file_path, "Output file path required"
   assert FLAGS.data_dir_path, "Data dir path required"
 
-  filenames, labels, bboxes = real_main(FLAGS.mat_metadata_file_path, FLAGS.max_number_length,
-        FLAGS.output_file_path, FLAGS.data_dir_path, FLAGS.rand_bbox_count)
+  mat_metadata_file_paths = FLAGS.mat_metadata_file_path.split(',')
+  data_dir_paths = FLAGS.data_dir_path.split(',')
+  assert len(mat_metadata_file_paths) == len(data_dir_paths)
 
-  pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes},
+  final_filenames, final_labels, final_bboxes = [], [], []
+
+  for i in range(len(mat_metadata_file_paths)):
+    mat_metadata_file_path, data_dir_path = mat_metadata_file_paths[i], data_dir_paths[i]
+    filenames, labels, bboxes = real_main(mat_metadata_file_path, FLAGS.max_number_length,
+      data_dir_path, FLAGS.rand_bbox_count)
+
+    data_dir_path_last_section = data_dir_path.split('/')[-1]
+    data_dir_path_last_section = data_dir_path_last_section or data_dir_path.split('/')[-2]
+    final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
+    final_bboxes.extend(bboxes)
+    final_labels.extend(labels)
+
+  pickle.dump({'filenames': final_filenames, 'labels': final_labels, 'bboxes': final_bboxes},
               open(FLAGS.output_file_path, 'wb'))
 
 
-def real_main(mat_metadata_file_path, max_number_length, output_file_path, data_dir_path,
+def real_main(mat_metadata_file_path, max_number_length, data_dir_path,
               rand_box_count=5):
   metadata = metadata_generator(mat_metadata_file_path)
   filenames, labels, bboxes = [], [], []
