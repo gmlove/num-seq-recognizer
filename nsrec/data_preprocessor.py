@@ -41,7 +41,10 @@ def main(args, **kwargs):
 
     data_dir_path_last_section = data_dir_path.split('/')[-1]
     data_dir_path_last_section = data_dir_path_last_section or data_dir_path.split('/')[-2]
-    final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
+    if len(data_dir_paths) == 1:
+      final_filenames.extend(filenames)
+    else:
+      final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
     final_bboxes.extend(bboxes)
     final_labels.extend(labels)
 
