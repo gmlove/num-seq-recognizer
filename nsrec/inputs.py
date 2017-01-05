@@ -10,8 +10,6 @@ from nsrec.debug import tensors_to_inspect
 from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
-pixel_depth = 255.0
-
 def batches(data_generator_fn, max_number_length, batch_size, size,
             num_preprocess_threads=1, is_training=True):
   filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
@@ -44,7 +42,6 @@ def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
     # tf.summary.image(name, tf.expand_dims(image, 0))
     pass
 
-  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
   image_summary("original_image", dequeued_img)
 
   if dequeued_bbox is not None:
@@ -65,7 +62,8 @@ def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
   #   dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
   image_summary("final_image", dequeued_img)
 
-  dequeued_img = (dequeued_img - pixel_depth / 2) / pixel_depth
+  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
+
   return dequeued_img
 
 
@@ -192,6 +190,7 @@ def read_img(img_file, bbox):
   ]
   return image
 
+pixel_depth = 255.0
 
 def normalize_img(image, size):
   image = misc.imresize(image, size).astype(np.float32)
