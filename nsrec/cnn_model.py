@@ -66,9 +66,24 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
     self.max_number_length = 5
     self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
     self.num_classes = self.max_number_length
+    self.images_to_infer = None
 
     for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
-                 'create_metadata_handler_fn']:
+                 'create_metadata_handler_fn', 'images_to_infer']:
+      if kwargs.get(attr, None) is None:
+        continue
+      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
+
+
+class CNNNSRInferModelConfig(CNNGeneralModelConfig):
+
+  def __init__(self, **kwargs):
+    super(CNNNSRInferModelConfig, self).__init__(**kwargs)
+
+    self.max_number_length = 5
+    self.images_to_infer = None
+
+    for attr in ['max_number_length', 'images_to_infer']:
       if kwargs.get(attr, None) is None:
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
@@ -187,6 +202,7 @@ class CNNNSRModelBase(CNNGeneralModelBase):
     super(CNNNSRModelBase, self).__init__(config)
     self.length_output = None
     self.numbers_output = None
+    self.max_number_length = self.config.max_number_length
 
   def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
@@ -210,7 +226,6 @@ class CNNNSRTrainModel(CNNNSRModelBase):
 
     self.total_loss = None
     self.global_step = None
-    self.max_number_length = self.config.max_number_length
     self.batch_size = config.batch_size
     self.train_accuracy = None
     self.numbers_label_batches = []
@@ -282,8 +297,40 @@ class CNNNSREvalModel(CNNNSRTrainModel):
 
 
 
-class CNNNSRPredictModel(CNNNSRModelBase):
-  pass
+class CNNNSRInferenceModel(CNNNSRModelBase):
+
+  def __init__(self, config):
+    super(CNNNSRInferenceModel, self).__init__(config)
+    self.images_to_infer = [s.strip() for s in config.images_to_infer.split(',')]
+    self.length_pb = None
+    self.numbers_pb = []
+
+  def _setup_input(self):
+    img_constants = []
+    for img_filename in self.images_to_infer:
+      img_constants.append(inputs.read_file(img_filename, self.config.size))
+    imgs_constant = tf.stack(img_constants)
+
+    self.data_batches = img_constants
+
+  def _setup_loss(self):
+    pass
+
+  def _setup_net(self):
+    super(CNNNSRInferenceModel, self)._setup_net()
+    self.length_pb = tf.nn.softmax(self.length_output)
+    for i in range(self.max_number_length):
+      self.numbers_pb.append(tf.nn.softmax(self.numbers_output[i]))
+
+  def infer(self, sess):
+    length_pb, numbers_pb = sess.run([self.length_pb, self.numbers_pb])
+    length = np.argmax(length_pb, axis=1)
+    numbers = np.argmax(numbers_pb, axis=2)
+    labels = []
+    for i in range(len(length)):
+      label = ''.join([str(n) for n in numbers[i][:length[i] + 1]])
+      labels.append(label)
+    return labels
 
 
 def create_model(FLAGS, mode='train'):

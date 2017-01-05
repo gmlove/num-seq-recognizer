@@ -1,6 +1,7 @@
 import os
 
 import h5py
+from scipy import ndimage, misc
 from six.moves import cPickle as pickle
 import tensorflow as tf
 import numpy as np
@@ -9,6 +10,7 @@ from nsrec.debug import tensors_to_inspect
 from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
+pixel_depth = 255.0
 
 def batches(data_generator_fn, max_number_length, batch_size, size,
             num_preprocess_threads=1, is_training=True):
@@ -63,7 +65,7 @@ def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
   #   dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
   image_summary("final_image", dequeued_img)
 
-  dequeued_img = dequeued_img - tf.reduce_mean(dequeued_img)
+  dequeued_img = (dequeued_img - pixel_depth / 2) / pixel_depth
   return dequeued_img
 
 
@@ -183,3 +185,9 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
+def read_file(img_file, size):
+  image = ndimage.imread(img_file)
+  image = misc.imresize(image, size).astype(np.float32)
+  image = (image- pixel_depth / 2) / pixel_depth
+  assert image.shape == (size[0], size[1], 3)
+  return tf.constant(image)

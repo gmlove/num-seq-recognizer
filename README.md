@@ -28,6 +28,13 @@ python3 nsrec/data_preprocessor.py \
     --data_dir_path=./data/test \
     --output_file_path=./data/test/metadata.pickle \
     --rand_bbox_count=0
+
+python3 nsrec/data_preprocessor.py \
+    --mat_metadata_file_path=./data/extra/digitStruct.mat \
+    --data_dir_path=./data/extra \
+    --output_file_path=./data/extra/metadata.pickle \
+    --rand_bbox_count=0
+
 ```
 
 ### train:
