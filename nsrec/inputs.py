@@ -21,7 +21,7 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
   length_label_queue = tf.train.input_producer(
     tf.constant(length_labels), shuffle=False, element_shape=(max_number_length, ), capacity=batch_size * 3)
   numbers_label_queue = tf.train.input_producer(
-    tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 10), capacity=batch_size * 3)
+    tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 11), capacity=batch_size * 3)
   bbox_queue = tf.train.input_producer(
     tf.constant(bboxes, dtype=tf.int32), shuffle=False, element_shape=(4, ), capacity=batch_size * 3)
 
@@ -90,7 +90,7 @@ def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_
         tf.logging.info('readed %s records', read_count)
 
     length_labels_nd = np.ndarray((len(filenames), max_number_length))
-    numbers_labels_nd = np.ndarray((len(filenames), max_number_length, 10))
+    numbers_labels_nd = np.ndarray((len(filenames), max_number_length, 11))
 
     for i, length_label in enumerate(length_labels):
       length_labels_nd[i, :] = length_label
@@ -106,10 +106,10 @@ def _to_data(filename, label, max_number_length, data_dir_path):
   # fix label if longer than max_number_length
   label = label[:max_number_length]
   if max_number_length == 1:
-    numbers_one_hot = [one_hot(ord(label) - ord('0') + 1, 10)]
+    numbers_one_hot = [one_hot(ord(label) - ord('0') + 1, 11)]
   else:
-    numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 10) for ch in label]
-  no_number_one_hot = [[0.1] * 10 for i in range(max_number_length - len(label))]
+    numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 11) for ch in label]
+  no_number_one_hot = [one_hot(11, 11) for i in range(max_number_length - len(label))]
   filename = os.path.join(data_dir_path, filename)
   length_label = one_hot(len(label), max_number_length)
   if len(label) < max_number_length:
@@ -127,7 +127,7 @@ def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_d
 
     filenames = []
     length_labels = np.ndarray((len(short_filenames), max_number_length))
-    numbers_labels = np.ndarray((len(short_filenames), max_number_length, 10))
+    numbers_labels = np.ndarray((len(short_filenames), max_number_length, 11))
 
     for i, filename in enumerate(short_filenames):
       filename, length_label, numbers_label = _to_data(filename, labels[i], max_number_length, data_dir_path)
