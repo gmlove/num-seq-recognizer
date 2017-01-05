@@ -23,7 +23,7 @@ tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
 def main(_):
   # Build the inference graph.
   g = tf.Graph()
-  with g.as_default():
+  with g.as_default(), tf.device('/cpu:0'):
     model = create_model(FLAGS, 'inference')
     model.build()
     saver = tf.train.Saver()
