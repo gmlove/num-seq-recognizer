@@ -22,6 +22,7 @@ class LenetTest(BaseNetTest):
         'lenet/pool1',
         'lenet/conv2',
         'lenet/pool2',
+        'lenet/fc3',
       ]
       self.assertSetEqual(set(end_points.keys()), set(expected_names))
 
@@ -39,7 +40,6 @@ class LenetTest(BaseNetTest):
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
-        'lenet/%s_fc3' % layers_name_prefix,
         'lenet/%s_dropout3' % layers_name_prefix,
         'lenet/%s_fc4' % layers_name_prefix,
       ]

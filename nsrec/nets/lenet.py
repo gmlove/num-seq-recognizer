@@ -16,6 +16,8 @@ def cnn_layers(inputs, scope, end_points_collection):
     net = slim.max_pool2d(net, [2, 2], 2, scope='pool2')
     net = slim.flatten(net)
 
+    net = slim.fully_connected(net, 1024, scope='fc3')
+
   return net, end_points_collection
 
 
@@ -32,7 +34,6 @@ def fc_layers(net,
 
   with slim.arg_scope([slim.fully_connected, slim.dropout],
                       outputs_collections=[end_points_collection]):
-    net = slim.fully_connected(net, 1024, scope=full_scope_name('fc3'))
     net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
                        scope=full_scope_name('dropout3'))
     net = slim.fully_connected(net, num_classes, activation_fn=None,
