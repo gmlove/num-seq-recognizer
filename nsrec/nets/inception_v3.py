@@ -12,7 +12,9 @@ variable_scope = variable_scope_fn(default_scope_name)
 def cnn_layers(inputs, scope, end_points_collection,
                final_endpoint='Mixed_7c',
                min_depth=16,
-               depth_multiplier=1.0):
+               depth_multiplier=1.0,
+               dropout_keep_prob=0.8,
+               is_training=True):
   """This function is based on slim.nets.inception_v3.inception_v3_base
   Inception model from http://arxiv.org/abs/1512.00567.
 

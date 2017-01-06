@@ -42,6 +42,8 @@ class AlexnetTest(BaseNetTest):
         'alexnet_v2/conv4',
         'alexnet_v2/conv5',
         'alexnet_v2/pool5',
+        'alexnet_v2/fc6',
+        'alexnet_v2/fc7',
       ]
       self.assertSetEqual(set(end_points.keys()), set(expected_names))
 
@@ -58,8 +60,6 @@ class AlexnetTest(BaseNetTest):
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
       expected_names = [
-        'alexnet_v2/%s_fc6' % layers_name_prefix,
-        'alexnet_v2/%s_fc7' % layers_name_prefix,
         'alexnet_v2/%s_fc8' % layers_name_prefix,
         'alexnet_v2/%s_fc8/squeezed' % layers_name_prefix
       ]

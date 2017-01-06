@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 
 from nsrec import inputs
-from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v1, lenet_v2
+from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v2, lenet_v1
 from nsrec.np_ops import correct_count
 
 
@@ -46,12 +46,12 @@ class CNNGeneralModelConfig(object):
       return iclr_mnr
     elif self.net_type == 'lenet_v1':
       tf.logging.info('using lenet_v1 net')
-      self.final_cnn_net = lenet_v1
-      return lenet_v1
-    elif self.net_type == 'lenet_v2':
-      tf.logging.info('using lenet_v2 net')
       self.final_cnn_net = lenet_v2
       return lenet_v2
+    elif self.net_type == 'lenet_v2':
+      tf.logging.info('using lenet_v2 net')
+      self.final_cnn_net = lenet_v1
+      return lenet_v1
     else:
       self.final_cnn_net = lenet
       tf.logging.info('using lenet')
