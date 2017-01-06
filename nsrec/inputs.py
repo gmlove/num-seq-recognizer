@@ -42,6 +42,8 @@ def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
     # tf.summary.image(name, tf.expand_dims(image, 0))
     pass
 
+  # Should be the first one to call, or will cause NaN issue
+  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
   image_summary("original_image", dequeued_img)
 
   if dequeued_bbox is not None:
@@ -61,8 +63,6 @@ def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=3):
   #   # Central crop, assuming resize_height > height, resize_width > width.
   #   dequeued_img = tf.image.resize_image_with_crop_or_pad(dequeued_img, size[0], size[1])
   image_summary("final_image", dequeued_img)
-
-  dequeued_img = tf.image.convert_image_dtype(dequeued_img, dtype=tf.float32)
 
   return dequeued_img
 

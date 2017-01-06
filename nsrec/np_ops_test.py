@@ -8,6 +8,8 @@ class OpsTest(tf.test.TestCase):
 
   def test_one_hot(self):
     self.assertAllEqual(one_hot(3, 5), np.array([0, 0, 1, 0, 0], dtype=np.float32))
+    self.assertAllEqual(one_hot(3, 3), np.array([0, 0, 1], dtype=np.float32))
+    self.assertAllEqual(one_hot(np.array([1, 1]), 3), np.array([[1, 0, 0], [1, 0, 0]], dtype=np.float32))
 
   def test_correct_count(self):
     self.assertEqual(correct_count(
