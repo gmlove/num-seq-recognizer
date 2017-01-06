@@ -26,6 +26,8 @@ def cnn_layers(inputs, scope, end_points_collection):
     net = slim.max_pool2d(net, [2, 2], 2, scope='pool7', padding='SAME')
     net = slim.flatten(net)
 
+    net = slim.fully_connected(net, 3072, scope='fc8')
+
   return net, end_points_collection
 
 
@@ -42,7 +44,6 @@ def fc_layers(net,
 
   with slim.arg_scope([slim.fully_connected, slim.dropout],
                       outputs_collections=[end_points_collection]):
-    net = slim.fully_connected(net, 3072, scope=full_scope_name('fc8'))
     net = slim.fully_connected(net, num_classes, activation_fn=None,
                                scope=full_scope_name('fc9'))
 
