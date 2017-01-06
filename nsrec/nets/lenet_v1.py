@@ -6,8 +6,11 @@ default_scope_name = 'lenet_v1'
 image_height, image_width = 64, 64
 variable_scope = variable_scope_fn(default_scope_name)
 
+'''
+accuracy: 0.68, data: 4.2M
+'''
 
-def cnn_layers(inputs, scope, end_points_collection):
+def cnn_layers(inputs, scope, end_points_collection, dropout_keep_prob=0.8, is_training=True):
   with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                       outputs_collections=[end_points_collection]):
     net = slim.conv2d(inputs, 32, [5, 5], scope='conv1')
@@ -22,7 +25,7 @@ def cnn_layers(inputs, scope, end_points_collection):
     net = slim.conv2d(net, 64, [5, 5], scope='conv7')
     net = slim.flatten(net)
 
-    net = slim.fully_connected(net, 256, scope='fc3')
+    net = slim.fully_connected(net, 128, scope='fc3')
 
   return net, end_points_collection
 
