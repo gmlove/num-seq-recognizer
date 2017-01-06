@@ -17,6 +17,8 @@ tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta d
 
 tf.flags.DEFINE_integer("save_summaries_secs", 5, "Save summaries per secs.")
 
+tf.flags.DEFINE_integer("save_interval_secs", 180, "Save model per secs.")
+
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
@@ -81,6 +83,7 @@ def main(unused_argv):
     graph=g,
     global_step=model.global_step,
     number_of_steps=FLAGS.number_of_steps,
+    save_interval_secs=FLAGS.save_interval_secs,
     save_summaries_secs=FLAGS.save_summaries_secs,
     saver=saver)
 
