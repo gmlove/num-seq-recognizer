@@ -77,7 +77,23 @@ class CNNModelTest(tf.test.TestCase):
       labels = model.infer(sess, [np.ones((100, 100, 3)), np.ones((100, 100, 3))])
       print('infered labels for data: %s' % (labels, ))
 
+  def test_export(self):
+    config = CNNNSRInferModelConfig()
 
+    with self.test_session() as sess:
+      model = CNNNSRInferenceModel(config)
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      model_vars = model.vars(sess)
+
+    with self.test_session() as sess:
+      model = CNNNSRToExportModel(config)
+      model.init(model_vars)
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      pbs = model.infer(sess, [np.ones((100, 100, 3))])
+      print(pbs)
+      self.assertEqual(len(pbs), 5 + 5 * 11)
 
 if __name__ == '__main__':
   tf.test.main()

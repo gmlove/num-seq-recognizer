@@ -44,12 +44,12 @@ class CNNGeneralModelConfig(object):
       tf.logging.info('using iclr_mnr net')
       self.final_cnn_net = iclr_mnr
       return iclr_mnr
-    elif self.net_type == 'lenet_v1':
-      tf.logging.info('using lenet_v1 net')
-      self.final_cnn_net = lenet_v2
-      return lenet_v2
     elif self.net_type == 'lenet_v2':
       tf.logging.info('using lenet_v2 net')
+      self.final_cnn_net = lenet_v2
+      return lenet_v2
+    elif self.net_type == 'lenet_v1':
+      tf.logging.info('using lenet_v1 net')
       self.final_cnn_net = lenet_v1
       return lenet_v1
     else:
@@ -350,9 +350,57 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
       labels.append((label, probabilities, reduced_prob))
     return labels
 
+  def vars(self, sess):
+    coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
+    model_vars = sess.run(coll)
+    model_vars_dict = dict(zip([v.name for v in coll], model_vars))
+    return model_vars_dict
+
+
+class CNNNSRToExportModel(CNNNSRInferenceModel):
+
+  def __init__(self, config):
+    super(CNNNSRToExportModel, self).__init__(config)
+    self.input_vars_dict = None
+    self.output = None
+
+  def init(self, input_vars_dict):
+    self.input_vars_dict = input_vars_dict
+
+  def _vars(self):
+    coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
+    return dict(zip([v.name for v in coll], coll))
+
+  def _setup_input(self):
+    self.data_batches = tf.placeholder(tf.float32, (1, self.config.size[0], self.config.size[1], 3), name='input')
+
+
+  def _setup_net(self):
+    super(CNNNSRToExportModel, self)._setup_net()
+
+    assign_ops = []
+    vars_dict = self._vars()
+    for name, input_var in self.input_vars_dict.items():
+      assign_ops.append(tf.assign(vars_dict[name], input_var))
+
+    with tf.control_dependencies(assign_ops):
+      length_pb = tf.nn.softmax(self.length_output)
+      to_concat = [tf.reshape(length_pb, (self.max_number_length, ))]
+      for i in range(self.max_number_length):
+        to_concat.append(tf.reshape(tf.nn.softmax(self.numbers_output[i]), (11, )))
+
+      self.output = tf.concat(0, to_concat, name='output')
+
+
+  def infer(self, sess, data):
+    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
+    assert len(input_data) == 1
+
+    return sess.run(self.output, {self.data_batches: input_data})
+
 
 def create_model(FLAGS, mode='train'):
-  assert mode in ['train', 'eval', 'inference']
+  assert mode in ['train', 'eval', 'inference', 'to_export']
 
   model_clz = {
     'length-train': CNNLengthTrainModel,
@@ -360,7 +408,8 @@ def create_model(FLAGS, mode='train'):
     'mnist-train': CNNMnistTrainModel,
     'all-train': CNNNSRTrainModel,
     'all-eval': CNNNSREvalModel,
-    'all-inference': CNNNSRInferenceModel
+    'all-inference': CNNNSRInferenceModel,
+    'all-to_export': CNNNSRToExportModel
   }
 
   key = '%s-%s' % (FLAGS.cnn_model_type, mode)
