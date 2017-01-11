@@ -64,7 +64,7 @@ class InputTest(tf.test.TestCase):
     with self.test_session() as sess:
       metadata_handler = metadata_handler_fn(metadata_file_path, max_number_length, data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
-        inputs.batches(metadata_handler, max_number_length, batch_size, size)
+        inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
 
       self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
       self.assertEqual(length_label_batches.get_shape(), (2, max_number_length))

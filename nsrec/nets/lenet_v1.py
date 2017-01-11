@@ -7,7 +7,7 @@ image_height, image_width = 64, 64
 variable_scope = variable_scope_fn(default_scope_name)
 
 '''
-accuracy: 0.68, data: 4.2M
+best accuracy: 0.71, data: 4.2M
 '''
 
 def cnn_layers(inputs, scope, end_points_collection, dropout_keep_prob=0.8, is_training=True):
@@ -43,8 +43,12 @@ def fc_layers(net,
 
   with slim.arg_scope([slim.fully_connected, slim.dropout],
                       outputs_collections=[end_points_collection]):
-    net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                       scope=full_scope_name('dropout3'))
+    '''
+    with droupout accuracy: 0.68, data: 4.2M
+    without droupout accuracy: 0.71, data: 4.2M
+    '''
+    # net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
+    #                    scope=full_scope_name('dropout3'))
     net = slim.fully_connected(net, num_classes, activation_fn=None,
                                scope=full_scope_name('fc4'))
 
