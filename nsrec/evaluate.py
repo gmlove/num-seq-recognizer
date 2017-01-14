@@ -26,9 +26,6 @@ default_data_dir_path = os.path.join(current_dir, '../data/test/')
 tf.flags.DEFINE_string("data_dir_path", default_data_dir_path,
                        "Meta data directory path.")
 
-default_checkpoint_dir = os.path.join(current_dir, '../output/train')
-tf.flags.DEFINE_string("checkpoint_dir", default_checkpoint_dir,
-                       "Directory containing model checkpoints.")
 
 default_eval_dir = os.path.join(current_dir, '../output/eval')
 tf.flags.DEFINE_string("eval_dir", default_eval_dir, "Directory to write event logs.")
@@ -41,11 +38,7 @@ tf.flags.DEFINE_integer("num_eval_examples", 10132,
 tf.flags.DEFINE_integer("min_global_step", 500,
                         "Minimum global step to run evaluation.")
 
-tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
-tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
-tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
-tf.flags.DEFINE_bool("gray_scale", True, "If read image as gray scale image.")
 
 def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   """
