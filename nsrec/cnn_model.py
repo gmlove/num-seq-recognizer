@@ -334,12 +334,13 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     pass
 
   def _setup_net(self):
-    self.data_batches = tf.cond(
-      tf.constant(self.config.gray_scale),
-      lambda: tf.image.rgb_to_grayscale(self.inputs), lambda: self.inputs)
-    shape = self.data_batches.get_shape().as_list()
-    shape[-1] = 1 if self.config.gray_scale else 3
-    self.data_batches.set_shape(shape)
+    if self.config.gray_scale:
+      self.data_batches = tf.image.rgb_to_grayscale(self.inputs)
+      shape = self.data_batches.get_shape().as_list()
+      shape[-1] = 1
+      self.data_batches.set_shape(shape)
+    else:
+      self.data_batches = self.inputs
 
     super(CNNNSRInferenceModel, self)._setup_net()
     self.length_pb = tf.nn.softmax(self.length_output)
