@@ -417,17 +417,24 @@ class CNNNSRToExportModel(CNNNSRInferenceModel):
 def create_model(FLAGS, mode='train'):
   assert mode in ['train', 'eval', 'inference', 'to_export']
 
+  from rnn_model import RNNTrainModel, RNNEvalModel
   model_clz = {
     'length-train': CNNLengthTrainModel,
     'length-eval': CNNNSREvalModel,
     'mnist-train': CNNMnistTrainModel,
     'all-train': CNNNSRTrainModel,
+    'all-train-rnn': RNNTrainModel,
     'all-eval': CNNNSREvalModel,
+    'all-eval-rnn': RNNEvalModel,
     'all-inference': CNNNSRInferenceModel,
     'all-to_export': CNNNSRToExportModel
   }
 
   key = '%s-%s' % (FLAGS.cnn_model_type, mode)
+  if FLAGS.rnn:
+    key = key + '-rnn'
+    tf.logging.info('using rnn')
+
   if key not in model_clz:
     raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
 
