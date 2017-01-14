@@ -30,6 +30,10 @@ class CNNGeneralModelConfig(object):
        for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self, attr))])
 
   @property
+  def channels(self):
+    return 1 if self.gray_scale else 3
+
+  @property
   def cnn_net(self):
     if self.final_cnn_net:
       return self.final_cnn_net
@@ -199,7 +203,7 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
         config.metadata_file_path, config.max_number_length, config.data_dir_path)
       self.data_batches, self.label_batches, _ = \
         inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training, channels=1 if self.config.gray_scale else 3)
+                       is_training=self.is_training, channels=self.config.channels)
 
   def _setup_accuracy(self):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
@@ -246,7 +250,7 @@ class CNNNSRTrainModel(CNNNSRModelBase):
         config.metadata_file_path, config.max_number_length, config.data_dir_path)
       self.data_batches, self.length_label_batches, numbers_label_batches = \
         inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training)
+                       is_training=self.is_training, channels=self.config.channels)
       for i in range(self.max_number_length):
         self.numbers_label_batches.append(numbers_label_batches[:, i, :])
 
