@@ -56,7 +56,7 @@ def main(_):
       metadata_idx = metadata['filenames'].index(f)
       label, bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
       should_be_labels.append(label)
-      data.append(inputs.read_img(file_paths[i], bbox, FLAGS.gray_scale))
+      data.append(inputs.read_img(file_paths[i], bbox))
 
     labels = model.infer(sess, data)
     for i in range(len(files)):

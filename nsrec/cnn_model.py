@@ -321,7 +321,12 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     self.is_training = False
 
   def _setup_input(self):
-    self.data_batches = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3))
+    self.data_batches = tf.placeholder(
+      tf.float32,
+      (None, self.config.size[0], self.config.size[1], 3))
+    self.data_batches = tf.cond(
+      tf.constant(self.config.gray_scale),
+      tf.image.rgb_to_grayscale(self.data_batches), self.data_batches)
 
   def _setup_loss(self):
     pass
