@@ -34,6 +34,8 @@ tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
 
 tf.flags.DEFINE_string("data_dir_path", None, "Train data path")
 
+tf.flags.DEFINE_bool("gray_scale", True, "If read image as gray scale image.")
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 train_dir = os.path.join(current_dir, '../output/train')
 

@@ -17,8 +17,9 @@ class CNNGeneralModelConfig(object):
     self.net_type = "lenet"
     self.force_size = None
     self.batch_size = 64
+    self.gray_scale = False
 
-    for attr in ['num_classes', 'net_type', 'batch_size', 'force_size']:
+    for attr in ['num_classes', 'net_type', 'batch_size', 'force_size', 'gray_scale']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
     self.final_cnn_net = None
@@ -198,7 +199,7 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
         config.metadata_file_path, config.max_number_length, config.data_dir_path)
       self.data_batches, self.label_batches, _ = \
         inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training)
+                       is_training=self.is_training, channels=1 if self.config.gray_scale else 3)
 
   def _setup_accuracy(self):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
@@ -332,7 +333,7 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
       self.numbers_pb.append(tf.nn.softmax(self.numbers_output[i]))
 
   def infer(self, sess, data):
-    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
+    input_data = [inputs.normalize_img(image, self.config.size, self.config.gray_scale) for image in data]
     length_pb, numbers_pb = sess.run(
       [self.length_pb, self.numbers_pb],
       feed_dict={self.data_batches: input_data})
@@ -393,7 +394,7 @@ class CNNNSRToExportModel(CNNNSRInferenceModel):
 
 
   def infer(self, sess, data):
-    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
+    input_data = [inputs.normalize_img(image, self.config.size, False) for image in data]
     assert len(input_data) == 1
 
     return sess.run(self.output, {self.data_batches: input_data})
@@ -422,13 +423,16 @@ def create_model(FLAGS, mode='train'):
                                  data_dir_path=FLAGS.data_dir_path,
                                  batch_size=FLAGS.batch_size,
                                  net_type=FLAGS.net_type,
-                                 max_number_length=FLAGS.max_number_length)
+                                 max_number_length=FLAGS.max_number_length,
+                                 gray_scale=FLAGS.gray_scale)
     else:
       config = CNNNSRInferModelConfig(net_type=FLAGS.net_type,
-                                      max_number_length=FLAGS.max_number_length)
+                                      max_number_length=FLAGS.max_number_length,
+                                      gray_scale=FLAGS.gray_scale)
   else:
     config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
                                    net_type=FLAGS.net_type,
-                                   num_classes=10)
+                                   num_classes=10,
+                                   gray_scale=FLAGS.gray_scale)
 
   return model_clz[key](config)

@@ -18,7 +18,7 @@ tf.flags.DEFINE_string("input_files", "",
 tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
-
+tf.flags.DEFINE_bool("gray_scale", True, "If read image as gray scale image.")
 
 def main(_):
   # Build the inference graph.
@@ -56,7 +56,7 @@ def main(_):
       metadata_idx = metadata['filenames'].index(f)
       label, bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
       should_be_labels.append(label)
-      data.append(inputs.read_img(file_paths[i], bbox))
+      data.append(inputs.read_img(file_paths[i], bbox, FLAGS.gray_scale))
 
     labels = model.infer(sess, data)
     for i in range(len(files)):

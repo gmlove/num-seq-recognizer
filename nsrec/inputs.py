@@ -11,7 +11,7 @@ from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
 def batches(data_generator_fn, max_number_length, batch_size, size,
-            num_preprocess_threads=3, is_training=True, channels=3):
+            num_preprocess_threads=1, is_training=True, channels=1):
   filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
 
   tf.logging.info('input data count: %s', len(filenames))
@@ -28,12 +28,17 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
   reader = tf.WholeFileReader()
   _, dequeued_record_string = reader.read(filename_queue)
 
-  dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
-  dequeued_img = _resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size, channels)
+  # TODO: why non-zero size image issue if num_preprocess_threads > 1
+  dequeued_data = []
+  for i in range(num_preprocess_threads):
+    dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
+    # dequeued_img = tf.Print(dequeued_img, [_, tf.shape(dequeued_img)], 'dequeued image: ')
+    dequeued_img = _resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size, channels)
+    dequeued_data.append([dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()])
 
 
   return tf.train.batch_join(
-    [[dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()]] * num_preprocess_threads,
+    dequeued_data,
     batch_size=batch_size, capacity=batch_size * 3)
 
 
@@ -183,8 +188,8 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def read_img(img_file, bbox):
-  image = ndimage.imread(img_file)
+def read_img(img_file, bbox, gray_scale):
+  image = ndimage.imread(img_file, gray_scale)
   image = image[
     bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2], :
   ]
@@ -192,9 +197,9 @@ def read_img(img_file, bbox):
 
 pixel_depth = 255.0
 
-def normalize_img(image, size):
+def normalize_img(image, size, gray_scale):
   image = misc.imresize(image, size).astype(np.float32)
   image = (image- pixel_depth / 2) / pixel_depth
-  assert image.shape == (size[0], size[1], 3)
+  assert image.shape == (size[0], size[1], 1 if gray_scale else 3)
   return image
 

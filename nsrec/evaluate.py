@@ -45,6 +45,7 @@ tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate al
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
+tf.flags.DEFINE_bool("gray_scale", True, "If read image as gray scale image.")
 
 def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   """
