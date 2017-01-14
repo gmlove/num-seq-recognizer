@@ -8,7 +8,7 @@ from nsrec.nets.test import BaseNetTest
 class RNNTest(BaseNetTest):
 
   def test_network_output(self):
-    batch_size, height, width, channels = 5, 28, 28, 3
+    batch_size, height, width, channels = 8, 28, 28, 3
     max_num_length, embedding_size = 5, 512
     with self.test_session():
       inputs = tf.random_uniform((batch_size, height, width, channels))
