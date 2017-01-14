@@ -319,29 +319,34 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     self.length_pb = None
     self.numbers_pb = []
     self.is_training = False
+    self.inputs = None
 
   def _setup_input(self):
-    self.data_batches = tf.placeholder(
+    self.inputs = tf.placeholder(
       tf.float32,
       (None, self.config.size[0], self.config.size[1], 3))
-    self.data_batches = tf.cond(
-      lambda: tf.constant(self.config.gray_scale),
-      lambda: tf.image.rgb_to_grayscale(self.data_batches), self.data_batches)
 
   def _setup_loss(self):
     pass
 
   def _setup_net(self):
+    self.data_batches = tf.cond(
+      tf.constant(self.config.gray_scale),
+      lambda: tf.image.rgb_to_grayscale(self.inputs), lambda: self.inputs)
+    shape = self.data_batches.get_shape().as_list()
+    shape[-1] = 1 if self.config.gray_scale else 3
+    self.data_batches.set_shape(shape)
+
     super(CNNNSRInferenceModel, self)._setup_net()
     self.length_pb = tf.nn.softmax(self.length_output)
     for i in range(self.max_number_length):
       self.numbers_pb.append(tf.nn.softmax(self.numbers_output[i]))
 
   def infer(self, sess, data):
-    input_data = [inputs.normalize_img(image, self.config.size, self.config.gray_scale) for image in data]
+    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
     length_pb, numbers_pb = sess.run(
       [self.length_pb, self.numbers_pb],
-      feed_dict={self.data_batches: input_data})
+      feed_dict={self.inputs: input_data})
     length = np.argmax(length_pb, axis=1)
     numbers = np.argmax(numbers_pb, axis=2)
 
@@ -378,8 +383,7 @@ class CNNNSRToExportModel(CNNNSRInferenceModel):
     return dict(zip([v.name for v in coll], coll))
 
   def _setup_input(self):
-    self.data_batches = tf.placeholder(tf.float32, (1, self.config.size[0], self.config.size[1], 3), name='input')
-
+    self.inputs = tf.placeholder(tf.float32, (1, self.config.size[0], self.config.size[1], 3), name='input')
 
   def _setup_net(self):
     super(CNNNSRToExportModel, self)._setup_net()
@@ -399,7 +403,7 @@ class CNNNSRToExportModel(CNNNSRInferenceModel):
 
 
   def infer(self, sess, data):
-    input_data = [inputs.normalize_img(image, self.config.size, False) for image in data]
+    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
     assert len(input_data) == 1
 
     return sess.run(self.output, {self.data_batches: input_data})
