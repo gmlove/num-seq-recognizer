@@ -325,8 +325,8 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
       tf.float32,
       (None, self.config.size[0], self.config.size[1], 3))
     self.data_batches = tf.cond(
-      tf.constant(self.config.gray_scale),
-      tf.image.rgb_to_grayscale(self.data_batches), self.data_batches)
+      lambda: tf.constant(self.config.gray_scale),
+      lambda: tf.image.rgb_to_grayscale(self.data_batches), self.data_batches)
 
   def _setup_loss(self):
     pass
