@@ -100,6 +100,7 @@ class CNNGeneralModelBase:
     self.variables = None
     self.data_batches = None
     self.model_output = None
+    self.label_batches = None
     self.is_training = True
 
   def _setup_input(self):

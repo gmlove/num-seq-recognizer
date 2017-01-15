@@ -2,8 +2,7 @@ import os
 
 import tensorflow as tf
 
-from nsrec.cnn_model import CNNNSRModelConfig, CNNNSRTrainModel, CNNLengthTrainModel, CNNMnistTrainModel, \
-  CNNGeneralModelConfig, create_model
+from nsrec.cnn_model import create_model
 
 FLAGS = tf.app.flags.FLAGS
 

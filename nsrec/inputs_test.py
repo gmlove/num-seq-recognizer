@@ -11,6 +11,10 @@ from nsrec.models import Data, BBox
 from nsrec.np_ops import one_hot
 
 
+def relative_file(path):
+  return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+
+
 class InputTest(tf.test.TestCase):
 
   def test_mnist_batches(self):
@@ -104,6 +108,40 @@ class InputTest(tf.test.TestCase):
     metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
     filenames, bboxes, length_labels, numbers_labels = metadata_handler()
 
+  def xx_test_non_zero_size_image_when_run_in_multi_thread(self):
+    # TODO: submit this issue
+    max_number_length, batch_size, size = 5, 32, (64, 64)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    metadata_file_path = os.path.join(current_dir, './test_data/metadata.pickle')
+    data_dir_path = os.path.join(current_dir, '../data/train')
+    with self.test_session() as sess:
+      data_gen_fn = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
+      old_fn = inputs._resize_image
+      def handle_image(dequeued_img, dequeued_bbox, *args):
+        # dequeued_img1 = dequeued_img[
+        #   dequeued_bbox[1]:dequeued_bbox[1]+dequeued_bbox[3], dequeued_bbox[0]:dequeued_bbox[0]+dequeued_bbox[2], :
+        # ]
+        dequeued_img2 = tf.image.resize_images(dequeued_img, [size[0], size[1]])
+        # return tf.concat_v2([tf.shape(dequeued_img2), tf.shape(dequeued_img), dequeued_bbox], 0)
+        return tf.concat_v2([tf.cast(tf.expand_dims(tf.reduce_sum(dequeued_img2), 0), dtype=tf.int32), tf.shape(dequeued_img2), tf.shape(dequeued_img), dequeued_bbox], 0)
+
+      inputs._resize_image = handle_image
+      data_batches, _, _ = inputs.batches(data_gen_fn, max_number_length, batch_size, size)
+      inputs._resize_image = old_fn
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+
+      coord = tf.train.Coordinator()
+      threads = tf.train.start_queue_runners(coord=coord)
+
+      for i in range(1000):
+        output = sess.run(data_batches)
+        print('image.shape=%s' % (output))
+
+      coord.request_stop()
+      coord.join(threads, stop_grace_period_secs=10)
+
+
 
 class DataReaderTest(tf.test.TestCase):
 
@@ -175,7 +213,7 @@ class DataReaderTest(tf.test.TestCase):
     DataReaderTest.createTestMatMetadata(25)
 
     data_pack = []
-    for i, data in enumerate(metadata_generator('./test_data/digitStruct.mat')):
+    for i, data in enumerate(metadata_generator(relative_file('./test_data/digitStruct.mat'))):
       data_pack.append(data)
     self.assertEqual(data_pack[0].label, '19')
     self.assertEqual(data_pack[20].label, '2')
@@ -183,7 +221,7 @@ class DataReaderTest(tf.test.TestCase):
     self.assertEqual(data_pack[24].filename, '25.png')
 
   def test_metadata_generator(self):
-    gen = metadata_generator('../data/train/digitStruct.mat')
+    gen = metadata_generator(relative_file('../data/train/digitStruct.mat'))
     sampled = [gen.__next__() for i in range(30)]
 
     self.assertIsInstance(sampled[0], Data)

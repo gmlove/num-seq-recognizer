@@ -17,8 +17,6 @@ tf.flags.DEFINE_string("final_data_dir_path", "",
                        "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
-tf.flags.DEFINE_integer("max_number_length", 5,
-                       "Max numbers length.")
 tf.flags.DEFINE_bool("rand_bbox_count", 5,
                         "If generate rand bbox.")
 
