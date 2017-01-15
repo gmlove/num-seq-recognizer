@@ -22,7 +22,7 @@ class CNNGeneralModelConfig(object):
     for attr in ['num_classes', 'net_type', 'batch_size', 'force_size', 'gray_scale']:
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
-    self.final_cnn_net = None
+    self._final_cnn_net = None
 
   def __str__(self):
     return 'Config(%s)' % ', '.join(
@@ -35,32 +35,22 @@ class CNNGeneralModelConfig(object):
 
   @property
   def cnn_net(self):
-    if self.final_cnn_net:
-      return self.final_cnn_net
-    if self.net_type == 'alexnet':
-      tf.logging.info('using alexnet')
-      self.final_cnn_net = alexnet
-      return alexnet
-    elif self.net_type == 'inception_v3':
-      tf.logging.info('using inception_v3 net')
-      self.final_cnn_net = inception_v3
-      return inception_v3
-    elif self.net_type == 'iclr_mnr':
-      tf.logging.info('using iclr_mnr net')
-      self.final_cnn_net = iclr_mnr
-      return iclr_mnr
-    elif self.net_type == 'lenet_v2':
-      tf.logging.info('using lenet_v2 net')
-      self.final_cnn_net = lenet_v2
-      return lenet_v2
-    elif self.net_type == 'lenet_v1':
-      tf.logging.info('using lenet_v1 net')
-      self.final_cnn_net = lenet_v1
-      return lenet_v1
+    net_dict = {
+      'alexnet': alexnet,
+      'inception_v3': inception_v3,
+      'iclr_mnr': iclr_mnr,
+      'lenet': lenet,
+      'lenet_v1': lenet_v1,
+      'lenet_v2': lenet_v2,
+    }
+    if self._final_cnn_net:
+      return self._final_cnn_net
+    if self.net_type in net_dict:
+      tf.logging.info('using %s', self.net_type)
+      self._final_cnn_net = net_dict[self.net_type]
+      return net_dict[self.net_type]
     else:
-      self.final_cnn_net = lenet
-      tf.logging.info('using lenet')
-      return lenet
+      raise Exception('Unsupported net: %s' % self.net_type)
 
   @property
   def size(self):
