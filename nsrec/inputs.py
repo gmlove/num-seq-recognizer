@@ -10,6 +10,33 @@ from nsrec.debug import tensors_to_inspect
 from nsrec.models import BBox, Data
 from nsrec.np_ops import one_hot
 
+
+def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, is_training=True, channels=3):
+  filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
+  tf.logging.info('input data count: %s', len(filenames))
+
+  filename_queue = tf.train.string_input_producer(
+    filenames, shuffle=False, capacity=batch_size * 3)
+  bbox_queue = tf.train.input_producer(
+    tf.constant(bboxes, dtype=tf.int32), shuffle=False, element_shape=(4, ), capacity=batch_size * 3)
+
+  reader = tf.WholeFileReader()
+  _, dequeued_record_string = reader.read(filename_queue)
+
+  dequeued_data = []
+  for i in range(num_preprocess_threads):
+    dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
+    img_shape = tf.shape(dequeued_img)
+    dequeued_img = _resize_image(dequeued_img, None, is_training, size, channels)
+    bbox = bbox_queue.dequeue()
+    normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
+    dequeued_data.append([dequeued_img, normalized_bbox])
+
+  return tf.train.batch_join(
+    dequeued_data,
+    batch_size=batch_size, capacity=batch_size * 3)
+
+
 def batches(data_generator_fn, max_number_length, batch_size, size,
             num_preprocess_threads=1, is_training=True, channels=1):
   filenames, bboxes, length_labels, numbers_labels = data_generator_fn()

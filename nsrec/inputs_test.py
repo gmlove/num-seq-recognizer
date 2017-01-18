@@ -90,6 +90,29 @@ class InputTest(tf.test.TestCase):
       coord.join(threads)
       sess.close()
 
+  def test_bbox_batches(self):
+    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
+    batch_size, size = 2, (28, 28)
+    max_number_length = 5
+    with self.test_session() as sess:
+      metadata_handler = inputs.create_pickle_metadata_handler(self._test_metadata_file_path(), max_number_length, data_dir_path)
+      data_batches, bbox_batches = \
+        inputs.bbox_batches(metadata_handler, batch_size, size, num_preprocess_threads=1, channels=3)
+
+      self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
+      self.assertEqual(bbox_batches.get_shape(), (2, 4))
+
+      coord = tf.train.Coordinator()
+      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+      # bbox of 1.png: 246, 77, 173, 223, size of 1.png: 741 x 350
+      _, bb = sess.run([data_batches, bbox_batches])
+      self.assertAllClose(bb[0], [246/741, 77/350, 173/741, 223/350])
+
+      coord.request_stop()
+      coord.join(threads)
+      sess.close()
+
   def assertNumbersLabelEqual(self, nlb, expected_numbers_labels, expected_numbers_labels_1):
     def expected_numbers_label(expected_numbers_labels, numbers):
       return expected_numbers_labels if expected_numbers_labels is not None else np.concatenate(
