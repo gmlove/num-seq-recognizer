@@ -1,3 +1,5 @@
+import os
+
 import tensorflow as tf
 
 from nsrec.cnn_model import *
@@ -24,6 +26,10 @@ class CNNModelTest(tf.test.TestCase):
   def test_train_length_model_with_pickle_metadata(self):
     self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler,
                   CNNLengthTrainModel)
+
+  def test_train_bbox_model_with_pickle_metadata(self):
+    self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler,
+                  CNNBBoxTrainModel)
 
   def test_train_model_with_mat_metadata(self):
     self.run_test(DataReaderTest.createTestMatMetadata, inputs.create_mat_metadata_handler)

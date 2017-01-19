@@ -30,6 +30,7 @@ def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, 
     dequeued_img = _resize_image(dequeued_img, None, is_training, size, channels)
     bbox = bbox_queue.dequeue()
     normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
+    normalized_bbox = tf.cast(normalized_bbox, tf.float32)
     dequeued_data.append([dequeued_img, normalized_bbox])
 
   return tf.train.batch_join(

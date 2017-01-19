@@ -1,95 +1,12 @@
-import os
 from functools import reduce
 
 import numpy as np
 import tensorflow as tf
+from model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
 from tensorflow.python.framework import ops
 
 from nsrec import inputs
-from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v2, lenet_v1
 from nsrec.np_ops import correct_count
-
-
-class CNNGeneralModelConfig(object):
-
-  def __init__(self, **kwargs):
-    self.num_classes = None
-    self.net_type = "lenet"
-    self.force_size = None
-    self.batch_size = 64
-    self.gray_scale = False
-
-    for attr in ['num_classes', 'net_type', 'batch_size', 'force_size', 'gray_scale']:
-      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
-
-    self._final_cnn_net = None
-
-  def __str__(self):
-    return 'Config(%s)' % ', '.join(
-      ['%s=%s'%(attr, getattr(self, attr))
-       for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self, attr))])
-
-  @property
-  def channels(self):
-    return 1 if self.gray_scale else 3
-
-  @property
-  def cnn_net(self):
-    net_dict = {
-      'alexnet': alexnet,
-      'inception_v3': inception_v3,
-      'iclr_mnr': iclr_mnr,
-      'lenet': lenet,
-      'lenet_v1': lenet_v1,
-      'lenet_v2': lenet_v2,
-    }
-    if self._final_cnn_net:
-      return self._final_cnn_net
-    if self.net_type in net_dict:
-      tf.logging.info('using %s', self.net_type)
-      self._final_cnn_net = net_dict[self.net_type]
-      return net_dict[self.net_type]
-    else:
-      raise Exception('Unsupported net: %s' % self.net_type)
-
-  @property
-  def size(self):
-    if self.force_size is not None:
-      return self.force_size
-    return [self.cnn_net.image_height, self.cnn_net.image_width]
-
-
-class CNNNSRModelConfig(CNNGeneralModelConfig):
-
-  def __init__(self, **kwargs):
-    super(CNNNSRModelConfig, self).__init__(**kwargs)
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.data_dir_path = os.path.join(current_dir, '../data/train')
-    self.metadata_file_path = os.path.join(self.data_dir_path, 'metadata.pickle')
-    self.max_number_length = 5
-    self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
-    self.num_classes = self.max_number_length
-
-    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
-                 'create_metadata_handler_fn']:
-      if kwargs.get(attr, None) is None:
-        continue
-      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
-
-
-class CNNNSRInferModelConfig(CNNGeneralModelConfig):
-
-  def __init__(self, **kwargs):
-    super(CNNNSRInferModelConfig, self).__init__(**kwargs)
-
-    self.max_number_length = 5
-    self.images_to_infer = None
-
-    for attr in ['max_number_length', 'images_to_infer']:
-      if kwargs.get(attr, None) is None:
-        continue
-      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
 
 
 class CNNGeneralModelBase:
@@ -165,6 +82,38 @@ class CNNMnistTrainModel(CNNGeneralModelBase):
   def _setup_accuracy(self):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
+
+class CNNBBoxTrainModel(CNNGeneralModelBase):
+
+  def __init__(self, config):
+    super(CNNBBoxTrainModel, self).__init__(config)
+
+    self.config.num_classes = 4
+
+    self.total_loss = None
+    self.global_step = None
+    self.train_accuracy = None
+
+  def _setup_input(self):
+    config = self.config
+    with ops.name_scope(None, 'Input') as sc:
+      metadata_handler = config.create_metadata_handler_fn(
+        config.metadata_file_path, self.config.max_number_length, config.data_dir_path)
+      self.data_batches, self.label_batches = \
+        inputs.bbox_batches(metadata_handler, config.batch_size, config.size,
+                       is_training=self.is_training, channels=self.config.channels)
+
+  def _setup_loss(self):
+    with ops.name_scope(None, 'Loss') as sc:
+      loss = tf.reduce_sum(tf.abs(self.label_batches - self.model_output))
+      self.total_loss = loss
+
+    tf.summary.scalar("loss/total_loss", self.total_loss)
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
+
+  def _setup_accuracy(self):
+    pass
 
 def softmax_accuracy(logits, label_batches, scope_name):
   with ops.name_scope(None, scope_name) as sc:
@@ -410,6 +359,7 @@ def create_model(FLAGS, mode='train'):
 
   from rnn_model import RNNTrainModel, RNNEvalModel
   model_clz = {
+    'bbox-train': CNNBBoxTrainModel,
     'length-train': CNNLengthTrainModel,
     'length-eval': CNNNSREvalModel,
     'mnist-train': CNNMnistTrainModel,
@@ -429,7 +379,7 @@ def create_model(FLAGS, mode='train'):
   if key not in model_clz:
     raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
 
-  if FLAGS.cnn_model_type in ['length', 'all']:
+  if FLAGS.cnn_model_type in ['length', 'all', 'bbox']:
     if mode in ['train', 'eval']:
       config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
                                  data_dir_path=FLAGS.data_dir_path,
