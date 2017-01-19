@@ -105,7 +105,7 @@ class CNNBBoxTrainModel(CNNGeneralModelBase):
 
   def _setup_loss(self):
     with ops.name_scope(None, 'Loss') as sc:
-      loss = tf.reduce_sum(tf.abs(self.label_batches - self.model_output))
+      loss = tf.reduce_sum(tf.square(self.label_batches - self.model_output))
       self.total_loss = loss
 
     tf.summary.scalar("loss/total_loss", self.total_loss)
@@ -114,6 +114,34 @@ class CNNBBoxTrainModel(CNNGeneralModelBase):
 
   def _setup_accuracy(self):
     pass
+
+class CNNBBoxInferModel(CNNBBoxTrainModel):
+
+  def __init__(self, config):
+    super(CNNBBoxInferModel, self).__init__(config)
+
+  def _setup_input(self):
+    self.data_batches = tf.placeholder(
+      tf.float32,
+      (None, self.config.size[0], self.config.size[1], 3))
+
+  def _setup_loss(self):
+    pass
+
+  def infer(self, sess, data):
+    # image.shape: (height, width, 3)
+    original_sizes = [image.shape for image in data]
+    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
+    infered_bboxes  = sess.run(self.model_output, feed_dict={self.data_batches: input_data})
+    result = []
+    for i in range(len(data)):
+      infered_bbox, original_size = infered_bboxes[i], original_sizes[i]
+      result.append([
+        infered_bbox[0] * original_size[1], infered_bbox[1] * original_size[0],
+        infered_bbox[2] * original_size[1], infered_bbox[3] * original_size[0],
+      ])
+    return result
+
 
 def softmax_accuracy(logits, label_batches, scope_name):
   with ops.name_scope(None, scope_name) as sc:
@@ -360,6 +388,7 @@ def create_model(FLAGS, mode='train'):
   from rnn_model import RNNTrainModel, RNNEvalModel
   model_clz = {
     'bbox-train': CNNBBoxTrainModel,
+    'bbox-inference': CNNBBoxInferModel,
     'length-train': CNNLengthTrainModel,
     'length-eval': CNNNSREvalModel,
     'mnist-train': CNNMnistTrainModel,

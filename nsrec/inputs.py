@@ -217,9 +217,10 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
 
 def read_img(img_file, bbox):
   image = ndimage.imread(img_file)
-  image = image[
-    bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2], :
-  ]
+  if bbox:
+    image = image[
+      bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2], :
+    ]
   return image
 
 pixel_depth = 255.0

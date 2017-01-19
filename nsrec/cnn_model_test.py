@@ -71,11 +71,15 @@ class CNNModelTest(tf.test.TestCase):
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=10)
 
-  def test_inference(self):
-    config = CNNNSRInferModelConfig()
+  def test_bbox_inference(self):
+    self._test_inference(CNNNSRInferModelConfig(), CNNBBoxInferModel)
 
+  def test_inference(self):
+    self._test_inference(CNNNSRInferModelConfig(), CNNNSRInferenceModel)
+
+  def _test_inference(self, config, model_cls):
     with self.test_session() as sess:
-      model = CNNNSRInferenceModel(config)
+      model = model_cls(config)
       model.build()
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
