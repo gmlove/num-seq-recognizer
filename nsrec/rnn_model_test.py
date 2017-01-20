@@ -1,10 +1,9 @@
 import os
 
+from nsrec import inputs
 import tensorflow as tf
-
-import inputs
 from cnn_model import CNNNSRModelConfig
-from inputs_test import DataReaderTest
+from nsrec.inputs.inputs_test import DataReaderTest
 from rnn_model import RNNTrainModel
 
 

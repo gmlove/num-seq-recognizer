@@ -1,11 +1,11 @@
 import os
 
-import tensorflow as tf
 from PIL import Image
 from six.moves import cPickle as pickle
 
-from nsrec.data_preprocessor import main, real_main
-from nsrec.inputs_test import DataReaderTest
+import tensorflow as tf
+from nsrec.inputs.inputs_test import DataReaderTest
+from nsrec.data_preprocessor import real_main
 
 
 class DataPreprocessorTest(tf.test.TestCase):

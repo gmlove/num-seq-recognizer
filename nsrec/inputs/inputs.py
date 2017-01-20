@@ -1,13 +1,12 @@
 import os
 
 import h5py
+import numpy as np
 from scipy import ndimage, misc
 from six.moves import cPickle as pickle
-import tensorflow as tf
-import numpy as np
 
-from nsrec.debug import tensors_to_inspect
-from nsrec.models import BBox, Data
+import tensorflow as tf
+from nsrec.inputs.models import BBox, Data
 from nsrec.np_ops import one_hot
 
 
@@ -196,7 +195,7 @@ def metadata_generator(file_path):
 
 def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, data_count=55000):
   current_dir = os.path.dirname(os.path.abspath(__file__))
-  mnist_data_dir = os.path.join(current_dir, '../MNIST-data')
+  mnist_data_dir = os.path.join(current_dir, '../../MNIST-data')
   from tensorflow.examples.tutorials.mnist import input_data
   mnist = input_data.read_data_sets(mnist_data_dir, one_hot=True)
 

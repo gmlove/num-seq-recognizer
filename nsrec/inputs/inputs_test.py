@@ -1,13 +1,13 @@
 import os
 
 import h5py
-import tensorflow as tf
 import numpy as np
 from six.moves import cPickle as pickle
 
+import tensorflow as tf
+from nsrec.inputs.models import Data, BBox
 from nsrec import inputs
 from nsrec.inputs import metadata_generator
-from nsrec.models import Data, BBox
 from nsrec.np_ops import one_hot
 
 
@@ -40,7 +40,7 @@ class InputTest(tf.test.TestCase):
       sess.close()
 
   def test_batches_from_mat(self):
-    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
     metadata_file_path = DataReaderTest.createTestMatMetadata(25, metadata_dir_path)
 
     self._test_batches(metadata_file_path, inputs.create_mat_metadata_handler)
@@ -51,7 +51,7 @@ class InputTest(tf.test.TestCase):
     self._test_batches(metadata_file_path, inputs.create_pickle_metadata_handler)
 
   def _test_metadata_file_path(self):
-    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
     metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
     return metadata_file_path
 
@@ -62,7 +62,7 @@ class InputTest(tf.test.TestCase):
   def _test_batches(self, metadata_file_path, metadata_handler_fn, max_number_length=5,
                     expected_length_labels=None, expected_numbers_labels=None,
                     expected_numbers_labels_1=None, data_dir_path=None):
-    data_dir_path = data_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
+    data_dir_path = data_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/train')
 
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
@@ -91,7 +91,7 @@ class InputTest(tf.test.TestCase):
       sess.close()
 
   def test_bbox_batches(self):
-    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train')
+    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/train')
     batch_size, size = 2, (28, 28)
     max_number_length = 5
     with self.test_session() as sess:
@@ -126,8 +126,8 @@ class InputTest(tf.test.TestCase):
     max_number_length, batch_size, size = 5, 64, (64, 64)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    metadata_file_path = os.path.join(current_dir, '../data/train/metadata.pickle')
-    data_dir_path = os.path.join(current_dir, '../data/train')
+    metadata_file_path = os.path.join(current_dir, '../../data/train/metadata.pickle')
+    data_dir_path = os.path.join(current_dir, '../../data/train')
     metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
     filenames, bboxes, length_labels, numbers_labels = metadata_handler()
 
@@ -137,7 +137,7 @@ class InputTest(tf.test.TestCase):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     metadata_file_path = os.path.join(current_dir, './test_data/metadata.pickle')
-    data_dir_path = os.path.join(current_dir, '../data/train')
+    data_dir_path = os.path.join(current_dir, '../../data/train')
     with self.test_session() as sess:
       data_gen_fn = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
       old_fn = inputs._resize_image
@@ -185,7 +185,7 @@ class DataReaderTest(tf.test.TestCase):
 
   @classmethod
   def createTestMatMetadata(cls, test_data_count, test_dir_path=None):
-    test_dir_path = test_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    test_dir_path = test_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
     metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
     test_f = h5py.File(metadata_file, 'w')
 
@@ -236,7 +236,7 @@ class DataReaderTest(tf.test.TestCase):
     DataReaderTest.createTestMatMetadata(25)
 
     data_pack = []
-    for i, data in enumerate(metadata_generator(relative_file('./test_data/digitStruct.mat'))):
+    for i, data in enumerate(metadata_generator(relative_file('../test_data/digitStruct.mat'))):
       data_pack.append(data)
     self.assertEqual(data_pack[0].label, '19')
     self.assertEqual(data_pack[20].label, '2')
@@ -244,7 +244,7 @@ class DataReaderTest(tf.test.TestCase):
     self.assertEqual(data_pack[24].filename, '25.png')
 
   def test_metadata_generator(self):
-    gen = metadata_generator(relative_file('../data/train/digitStruct.mat'))
+    gen = metadata_generator(relative_file('../../data/train/digitStruct.mat'))
     sampled = [gen.__next__() for i in range(30)]
 
     self.assertIsInstance(sampled[0], Data)
