@@ -5,16 +5,13 @@ This script should be run concurrently with training so that summaries show up
 in TensorBoard.
 """
 
-import math
 import os.path
 import time
 
+import math
 
-import numpy as np
 import tensorflow as tf
-
-from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel, create_model
-from nsrec.debug import inspect_tensors
+from models.cnn_model import create_model
 
 FLAGS = tf.flags.FLAGS
 

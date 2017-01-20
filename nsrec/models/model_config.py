@@ -60,7 +60,7 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
     super(CNNNSRModelConfig, self).__init__(**kwargs)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.data_dir_path = os.path.join(current_dir, '../data/train')
+    self.data_dir_path = os.path.join(current_dir, '../../data/train')
     self.metadata_file_path = os.path.join(self.data_dir_path, 'metadata.pickle')
     self.max_number_length = 5
     self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler

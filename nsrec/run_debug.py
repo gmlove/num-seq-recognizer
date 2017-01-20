@@ -1,12 +1,7 @@
-import math
 import os.path
-import time
 
-
-import numpy as np
 import tensorflow as tf
-
-from nsrec.cnn_model import CNNNSRModelConfig, CNNNSREvalModel, create_model
+from models.cnn_model import create_model
 from nsrec.debug import inspect_tensors
 
 FLAGS = tf.flags.FLAGS

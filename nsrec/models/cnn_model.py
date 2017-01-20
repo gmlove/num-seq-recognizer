@@ -1,12 +1,12 @@
 from functools import reduce
 
 import numpy as np
-import tensorflow as tf
-from model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
-from tensorflow.python.framework import ops
 
+import tensorflow as tf
+from models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
 from nsrec import inputs
 from nsrec.np_ops import correct_count
+from tensorflow.python.framework import ops
 
 
 class CNNGeneralModelBase:
@@ -454,7 +454,7 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
 def create_model(FLAGS, mode='train'):
   assert mode in ['train', 'eval', 'inference', 'to_export']
 
-  from rnn_model import RNNTrainModel, RNNEvalModel
+  from models.rnn_model import RNNTrainModel, RNNEvalModel
   model_clz = {
     'bbox-train': CNNBBoxTrainModel,
     'bbox-inference': CNNBBoxInferModel,

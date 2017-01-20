@@ -1,11 +1,7 @@
 import os
 
 import tensorflow as tf
-from tensorflow.python.framework import ops
-
-from nsrec import inputs
-from nsrec.cnn_model import create_model
-from six.moves import cPickle as pickle
+from models.cnn_model import create_model
 
 FLAGS = tf.flags.FLAGS
 

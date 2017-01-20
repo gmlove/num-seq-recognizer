@@ -1,10 +1,9 @@
-from tensorflow.contrib import slim
-import tensorflow as tf
-from tensorflow.python.framework import ops
-
-import cnn_model
 import inputs
+import tensorflow as tf
+from models import cnn_model
 from nets import rnn
+from tensorflow.contrib import slim
+from tensorflow.python.framework import ops
 
 
 class RNNTrainModel(cnn_model.CNNNSRTrainModel):
