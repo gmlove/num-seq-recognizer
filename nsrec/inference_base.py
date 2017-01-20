@@ -2,17 +2,25 @@ import os
 
 import tensorflow as tf
 
-from nsrec import inputs
+from nsrec import inputs, ArgumentsObj
 from nsrec.cnn_model import create_model
 from six.moves import cPickle as pickle
 
-FLAGS = tf.flags.FLAGS
+_FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string("input_files", "",
                        "File pattern or comma-separated list of file patterns "
                        "of image files.")
 
-def inference(label_fn, crop_bbox=True):
+def combined_inference():
+  args = ArgumentsObj('bbox').defineArg('cnn_model_type', 'bbox')
+  bboxes = inference(lambda labels, bboxes: bboxes, None, args)
+  if not bboxes:
+    raise Exception("Bbox not calculated.")
+  inference(lambda labels, bboxes: labels, bboxes)
+
+def inference(label_fn, bboxes=False, FLAGS=None):
+  FLAGS = FLAGS or _FLAGS
   # Build the inference graph.
   g = tf.Graph()
   with g.as_default(), tf.device('/cpu:0'):
@@ -46,10 +54,12 @@ def inference(label_fn, crop_bbox=True):
     data = []
     for i, f in enumerate(files):
       metadata_idx = metadata['filenames'].index(f)
-      label, bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
-      should_be_labels.append(label_fn(label, bbox))
-      data.append(inputs.read_img(file_paths[i], bbox if crop_bbox else None))
+      label, metadata_bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
+      should_be_labels.append(label_fn(label, metadata_bbox))
+      bbox = (bboxes[i] if bboxes is not None else None) if bboxes is not False else metadata_bbox
+      data.append(inputs.read_img(file_paths[i], bbox))
 
     labels = model.infer(sess, data)
     for i in range(len(files)):
       tf.logging.info('infered image %s[%s]: %s', files[i], should_be_labels[i], labels[i])
+    return labels

@@ -215,12 +215,22 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
+def fix_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
+  top = max([bbox[1] - h * expand_rate, 0])
+  bottom = min([bbox[1] + bbox[3] + h * expand_rate, h])
+  left = max([bbox[0] - w * expand_rate, 0])
+  right = min([bbox[0] + bbox[2] + w * expand_rate, w])
+  if bottom - top < accept_min_rate * h:
+    top, bottom = 0, h
+  if right - left < accept_min_rate * w:
+    left, right = 0, w
+  return image[top:bottom, left:right, :]
+
+
 def read_img(img_file, bbox):
   image = ndimage.imread(img_file)
   if bbox:
-    image = image[
-      bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2], :
-    ]
+    image = fix_bbox(image, image.shape[1], image.shape[0], bbox)
   return image
 
 pixel_depth = 255.0

@@ -115,15 +115,16 @@ class CNNBBoxTrainModel(CNNGeneralModelBase):
   def _setup_accuracy(self):
     pass
 
+
 class CNNBBoxInferModel(CNNBBoxTrainModel):
 
   def __init__(self, config):
     super(CNNBBoxInferModel, self).__init__(config)
 
-  def _setup_input(self):
-    self.data_batches = tf.placeholder(
-      tf.float32,
-      (None, self.config.size[0], self.config.size[1], 3))
+  def _setup_input(self, inputs=None):
+    self.inputs = inputs or tf.placeholder(tf.float32, (None, 512, 512, 3), name='input')
+    resized = tf.image.resize_images(self.inputs, self.config.size)
+    self.data_batches = gray_scale(resized) if self.config.gray_scale else resized
 
   def _setup_loss(self):
     pass
@@ -136,11 +137,14 @@ class CNNBBoxInferModel(CNNBBoxTrainModel):
     result = []
     for i in range(len(data)):
       infered_bbox, original_size = infered_bboxes[i], original_sizes[i]
-      result.append([
+      result.append(list(map(lambda x: int(x), [
         infered_bbox[0] * original_size[1], infered_bbox[1] * original_size[0],
         infered_bbox[2] * original_size[1], infered_bbox[3] * original_size[0],
-      ])
+      ])))
     return result
+
+  def vars(self, sess):
+    return inference_vars(sess)
 
 
 def softmax_accuracy(logits, label_batches, scope_name):
@@ -283,6 +287,20 @@ class CNNNSREvalModel(CNNNSRTrainModel):
                          length_label_batches_pd, numbers_label_batches_pd)
 
 
+def gray_scale(inputs):
+  data_batches = tf.image.rgb_to_grayscale(inputs)
+  shape = data_batches.get_shape().as_list()
+  shape[-1] = 1
+  data_batches.set_shape(shape)
+  return data_batches
+
+
+def inference_vars(sess):
+  coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
+  model_vars = sess.run(coll)
+  model_vars_dict = dict(zip([v.name for v in coll], model_vars))
+  return model_vars_dict
+
 
 class CNNNSRInferenceModel(CNNNSRModelBase):
 
@@ -293,23 +311,14 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     self.is_training = False
     self.inputs = None
 
-  def _setup_input(self):
-    self.inputs = tf.placeholder(
-      tf.float32,
-      (None, self.config.size[0], self.config.size[1], 3))
+  def _setup_input(self, inputs=None):
+    self.inputs = inputs or tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_loss(self):
     pass
 
   def _setup_net(self):
-    if self.config.gray_scale:
-      self.data_batches = tf.image.rgb_to_grayscale(self.inputs)
-      shape = self.data_batches.get_shape().as_list()
-      shape[-1] = 1
-      self.data_batches.set_shape(shape)
-    else:
-      self.data_batches = self.inputs
-
     super(CNNNSRInferenceModel, self)._setup_net()
     self.length_pb = tf.nn.softmax(self.length_output)
     for i in range(self.max_number_length):
@@ -335,51 +344,45 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     return labels
 
   def vars(self, sess):
-    coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
-    model_vars = sess.run(coll)
-    model_vars_dict = dict(zip([v.name for v in coll], model_vars))
-    return model_vars_dict
+    return inference_vars(sess)
+
+
+def vars_assign_ops(vars_dict, saved_vars_dict, prefix=''):
+  assign_ops = []
+  for name, input_var in saved_vars_dict.items():
+    assign_ops.append(tf.assign(vars_dict[prefix + name], input_var))
+  return assign_ops
+
+
+def stacked_output_ops(max_number_length, length_output, numbers_output, name='output'):
+  length_pb = tf.nn.softmax(length_output)
+  to_concat = [tf.reshape(length_pb, (max_number_length, ))]
+  for i in range(max_number_length):
+    to_concat.append(tf.reshape(tf.nn.softmax(numbers_output[i]), (11, )))
+  return tf.concat(0, to_concat, name=name)
 
 
 class CNNNSRToExportModel(CNNNSRInferenceModel):
 
   def __init__(self, config):
     super(CNNNSRToExportModel, self).__init__(config)
-    self.input_vars_dict = None
+    self.saved_vars_dict = None
     self.output = None
 
-  def init(self, input_vars_dict):
-    self.input_vars_dict = input_vars_dict
+  def init(self, saved_vars_dict):
+    self.saved_vars_dict = saved_vars_dict
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
     return dict(zip([v.name for v in coll], coll))
 
-  def _setup_input(self):
-    self.inputs = tf.placeholder(tf.float32, (1, self.config.size[0], self.config.size[1], 3), name='input')
-
   def _setup_net(self):
     super(CNNNSRToExportModel, self)._setup_net()
 
-    assign_ops = []
-    vars_dict = self._vars()
-    for name, input_var in self.input_vars_dict.items():
-      assign_ops.append(tf.assign(vars_dict[name], input_var))
-
+    assign_ops = vars_assign_ops(self._vars(), self.saved_vars_dict)
     with tf.control_dependencies(assign_ops):
-      length_pb = tf.nn.softmax(self.length_output)
-      to_concat = [tf.reshape(length_pb, (self.max_number_length, ))]
-      for i in range(self.max_number_length):
-        to_concat.append(tf.reshape(tf.nn.softmax(self.numbers_output[i]), (11, )))
-
-      self.output = tf.concat(0, to_concat, name='output')
-
-
-  def infer(self, sess, data):
-    input_data = [inputs.normalize_img(image, self.config.size) for image in data]
-    assert len(input_data) == 1
-
-    return sess.run(self.output, {self.data_batches: input_data})
+      self.output = stacked_output_ops(
+        self.max_number_length, self.length_output, self.numbers_output, name='output')
 
 
 def create_model(FLAGS, mode='train'):

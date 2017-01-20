@@ -101,7 +101,7 @@ class CNNModelTest(tf.test.TestCase):
       model.init(model_vars)
       model.build()
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-      pbs = model.infer(sess, [np.ones((100, 100, 3))])
+      pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, 64, 64, 3))})
       print(pbs)
       self.assertEqual(len(pbs), 5 + 5 * 11)
 

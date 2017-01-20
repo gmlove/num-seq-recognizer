@@ -21,9 +21,8 @@ tf.flags.DEFINE_string("optimizer", "SGD", "Optimizer: SGD")
 tf.flags.DEFINE_float("learning_rate", 0.05, "Learning rate")
 tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
 tf.flags.DEFINE_string("data_dir_path", None, "Train data path")
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
-train_dir = os.path.join(current_dir, '../output/train')
+tf.flags.DEFINE_string("train_dir", os.path.join(current_dir, '../output/train'), "Train output directory.")
 
 
 def learning_rate_fn(batch_size):
@@ -44,6 +43,7 @@ def learning_rate_fn(batch_size):
 
 
 def main(unused_argv):
+  train_dir = FLAGS.train_dir
   if not os.path.exists(train_dir):
     tf.logging.info("Creating training directory: %s", train_dir)
     os.makedirs(train_dir)
