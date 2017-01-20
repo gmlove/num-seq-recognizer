@@ -122,7 +122,7 @@ class CNNBBoxInferModel(CNNBBoxTrainModel):
     super(CNNBBoxInferModel, self).__init__(config)
 
   def _setup_input(self, inputs=None):
-    self.inputs = inputs or tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.inputs = inputs or tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input-bbox')
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_loss(self):
@@ -403,7 +403,7 @@ class CNNBboxToExportModel(CNNBBoxInferModel):
 
     assign_ops = vars_assign_ops(self._vars(), self.saved_vars_dict)
     with tf.control_dependencies(assign_ops):
-      self.output = tf.reshape(self.model_output, (-1, ), 'output')
+      self.output = tf.reshape(self.model_output, (-1, ), 'output-bbox')
 
 
 class CNNCombinedToExportModel(CNNGeneralModelBase):
