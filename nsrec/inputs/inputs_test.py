@@ -5,10 +5,10 @@ import numpy as np
 from six.moves import cPickle as pickle
 
 import tensorflow as tf
-from nsrec.inputs.models import Data, BBox
 from nsrec import inputs
 from nsrec.inputs import metadata_generator
-from nsrec.np_ops import one_hot
+from nsrec.inputs.models import Data, BBox
+from nsrec.utils.np_ops import one_hot
 
 
 def relative_file(path):

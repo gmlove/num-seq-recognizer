@@ -2,7 +2,7 @@ import os.path
 
 import tensorflow as tf
 from models.cnn_model import create_model
-from nsrec.debug import inspect_tensors
+from nsrec.utils.debug import inspect_tensors
 
 FLAGS = tf.flags.FLAGS
 

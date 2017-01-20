@@ -7,7 +7,7 @@ from six.moves import cPickle as pickle
 
 import tensorflow as tf
 from nsrec.inputs.models import BBox, Data
-from nsrec.np_ops import one_hot
+from nsrec.utils.np_ops import one_hot
 
 
 def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, is_training=True, channels=3):

@@ -5,8 +5,8 @@ import numpy as np
 import tensorflow as tf
 from models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
 from nsrec import inputs
-from nsrec.np_ops import correct_count
 from tensorflow.python.framework import ops
+from nsrec.utils.np_ops import correct_count
 
 
 class CNNGeneralModelBase:

@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
 
-from nsrec.np_ops import one_hot, correct_count
+import tensorflow as tf
+from nsrec.utils.np_ops import one_hot, correct_count
 
 
 class OpsTest(tf.test.TestCase):
