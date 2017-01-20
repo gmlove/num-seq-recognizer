@@ -1,6 +1,6 @@
 import os
 
-import inputs
+from nsrec import inputs
 import tensorflow as tf
 from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v2, lenet_v1
 

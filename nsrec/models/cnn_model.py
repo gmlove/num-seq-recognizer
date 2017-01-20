@@ -3,7 +3,7 @@ from functools import reduce
 import numpy as np
 
 import tensorflow as tf
-from models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
+from nsrec.models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
 from nsrec import inputs
 from tensorflow.python.framework import ops
 from nsrec.utils.np_ops import correct_count
@@ -122,9 +122,8 @@ class CNNBBoxInferModel(CNNBBoxTrainModel):
     super(CNNBBoxInferModel, self).__init__(config)
 
   def _setup_input(self, inputs=None):
-    self.inputs = inputs or tf.placeholder(tf.float32, (None, 512, 512, 3), name='input')
-    resized = tf.image.resize_images(self.inputs, self.config.size)
-    self.data_batches = gray_scale(resized) if self.config.gray_scale else resized
+    self.inputs = inputs or tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_loss(self):
     pass
@@ -385,6 +384,28 @@ class CNNNSRToExportModel(CNNNSRInferenceModel):
         self.max_number_length, self.length_output, self.numbers_output, name='output')
 
 
+class CNNBboxToExportModel(CNNBBoxInferModel):
+
+  def __init__(self, config):
+    super(CNNBboxToExportModel, self).__init__(config)
+    self.saved_vars_dict = None
+    self.output = None
+
+  def init(self, saved_vars_dict):
+    self.saved_vars_dict = saved_vars_dict
+
+  def _vars(self):
+    coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
+    return dict(zip([v.name for v in coll], coll))
+
+  def _setup_net(self):
+    super(CNNBBoxInferModel, self)._setup_net()
+
+    assign_ops = vars_assign_ops(self._vars(), self.saved_vars_dict)
+    with tf.control_dependencies(assign_ops):
+      self.output = tf.reshape(self.model_output, (-1, ), 'output')
+
+
 class CNNCombinedToExportModel(CNNGeneralModelBase):
 
   def __init__(self, config):
@@ -399,8 +420,9 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
     self.vars_dict = vars_dict
 
   def _setup_input(self):
-    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
-    self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
+    self.inputs = tf.placeholder(tf.float32, (None, 512, 512, 3), name='input')
+    resized = tf.image.resize_images(self.inputs, self.config.size)
+    self.data_batches = gray_scale(resized) if self.config.gray_scale else resized
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
@@ -408,8 +430,11 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
 
   def _setup_net(self):
     with tf.variable_scope('bbox'):
-      self.bbox_infer_model._setup_input()
-      self.bbox_infer_model._setup_net()
+      inputs_0 = tf.Variable(trainable=False, validate_shape=(None, self.config.size[0], self.config.size[1], 3))
+      self.bbox_infer_model._setup_input(inputs_0)
+      assign_op = tf.assign(inputs_0, self.data_batches)
+      with tf.control_dependencies([assign_op]):
+        self.bbox_infer_model._setup_net()
 
     def crop_bbox(width, height, input, bbox):
       expand_rate = 0.1
@@ -458,6 +483,7 @@ def create_model(FLAGS, mode='train'):
   model_clz = {
     'bbox-train': CNNBBoxTrainModel,
     'bbox-inference': CNNBBoxInferModel,
+    'bbox-to_export': CNNBboxToExportModel,
     'length-train': CNNLengthTrainModel,
     'length-eval': CNNNSREvalModel,
     'mnist-train': CNNMnistTrainModel,

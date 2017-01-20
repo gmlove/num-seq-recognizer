@@ -1,6 +1,6 @@
 import os
 
-from models.cnn_model import *
+from nsrec.models.cnn_model import *
 from nsrec.inputs.inputs_test import DataReaderTest
 
 
@@ -85,7 +85,7 @@ class CNNModelTest(tf.test.TestCase):
       labels = model.infer(sess, [np.ones((100, 100, 3)), np.ones((100, 100, 3))])
       print('infered labels for data: %s' % (labels, ))
 
-  def test_export(self):
+  def test_model_export(self):
     config = CNNNSRInferModelConfig()
 
     with self.test_session() as sess:
@@ -102,6 +102,24 @@ class CNNModelTest(tf.test.TestCase):
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, 64, 64, 3))})
       print(pbs)
       self.assertEqual(len(pbs), 5 + 5 * 11)
+
+  def test_bbox_model_export(self):
+    config = CNNNSRInferModelConfig()
+
+    with self.test_session() as sess:
+      model = CNNBBoxInferModel(config)
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      model_vars = model.vars(sess)
+
+    with self.test_session() as sess:
+      model = CNNBboxToExportModel(config)
+      model.init(model_vars)
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, config.size[0], config.size[1], 3))})
+      print(pbs)
+      self.assertEqual(len(pbs), 4)
 
 if __name__ == '__main__':
   tf.test.main()

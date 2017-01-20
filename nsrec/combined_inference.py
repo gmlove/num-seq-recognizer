@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-from inference_base import combined_inference
+from inference_base import inference
+from nsrec import ArgumentsObj
 
 tf.flags.DEFINE_string("bbox_net_type", "lenet", "Which net to use: lenet or alexnet")
 tf.flags.DEFINE_string("bbox_checkpoint_dir", None,
@@ -8,7 +9,11 @@ tf.flags.DEFINE_string("bbox_checkpoint_dir", None,
 
 
 def main(_):
-  combined_inference()
+  args = ArgumentsObj('bbox').defineArg('cnn_model_type', 'bbox')
+  bboxes = inference(lambda labels, bboxes: bboxes, None, args)
+  if not bboxes:
+    raise Exception("Bbox not calculated.")
+  inference(lambda labels, bboxes: labels, bboxes)
 
 
 if __name__ == "__main__":

@@ -12,12 +12,6 @@ tf.flags.DEFINE_string("input_files", "",
                        "File pattern or comma-separated list of file patterns "
                        "of image files.")
 
-def combined_inference():
-  args = ArgumentsObj('bbox').defineArg('cnn_model_type', 'bbox')
-  bboxes = inference(lambda labels, bboxes: bboxes, None, args)
-  if not bboxes:
-    raise Exception("Bbox not calculated.")
-  inference(lambda labels, bboxes: labels, bboxes)
 
 def inference(label_fn, bboxes=False, FLAGS=None):
   FLAGS = FLAGS or _FLAGS
