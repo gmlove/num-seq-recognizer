@@ -153,7 +153,8 @@ def _to_data(filename, label, max_number_length, data_dir_path):
 def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
 
   def handler():
-    metadata = pickle.load(open(metadata_file_path, 'rb'))
+    with open(metadata_file_path, 'rb') as f:
+      metadata = pickle.load(f)
     short_filenames, labels, bboxes = metadata['filenames'], metadata['labels'], metadata['bboxes']
 
     filenames = []

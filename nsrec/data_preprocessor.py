@@ -97,12 +97,14 @@ def fix_bbox(md, data_dir_path):
     bbox = [max(k, 0) for k in bbox]
     tf.logging.info('fix record %s to bbox=%s', md.filename, bbox)
   im = Image.open(os.path.join(data_dir_path, md.filename))
-  if bbox[0] + bbox[2] > im.size[0] or bbox[1] + bbox[3] > im.size[1]:
-    tf.logging.info('fix record %s, bad bbox. bbox=%s, size=%s', md.filename, bbox, im.size)
-    bbox[2] = im.size[0] - bbox[0] if bbox[0] + bbox[2] > im.size[0] else bbox[2]
-    bbox[3] = im.size[1] - bbox[1] if bbox[1] + bbox[3] > im.size[1] else bbox[3]
-    tf.logging.info('fix record %s to bbox=%s, size=%s', md.filename, bbox, im.size)
-  return bbox, im.size
+  im_size = im.size
+  im.close()
+  if bbox[0] + bbox[2] > im_size[0] or bbox[1] + bbox[3] > im_size[1]:
+    tf.logging.info('fix record %s, bad bbox. bbox=%s, size=%s', md.filename, bbox, im_size)
+    bbox[2] = im_size[0] - bbox[0] if bbox[0] + bbox[2] > im_size[0] else bbox[2]
+    bbox[3] = im_size[1] - bbox[1] if bbox[1] + bbox[3] > im_size[1] else bbox[3]
+    tf.logging.info('fix record %s to bbox=%s, size=%s', md.filename, bbox, im_size)
+  return bbox, im_size
 
 
 def random_bbox(count, bbox, size):

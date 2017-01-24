@@ -179,7 +179,8 @@ class DataReaderTest(tf.test.TestCase):
       bboxes.append(data.bbox())
 
     metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
-    pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, open(metadata_file, 'wb'))
+    with open(metadata_file, 'wb') as f:
+      pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, f)
 
     return metadata_file
 

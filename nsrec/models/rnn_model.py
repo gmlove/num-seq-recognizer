@@ -1,7 +1,7 @@
-import inputs
 import tensorflow as tf
-from models import cnn_model
-from nets import rnn
+from nsrec import inputs
+from nsrec.models import cnn_model
+from nsrec.nets import rnn
 from tensorflow.contrib import slim
 from tensorflow.python.framework import ops
 

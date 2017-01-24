@@ -28,7 +28,8 @@ class DataPreprocessorTest(tf.test.TestCase):
 
   def test_check_bbox(self):
     metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/test/metadata.pickle')
-    metadata = pickle.load(open(metadata_file_path, 'rb'))
+    with open(metadata_file_path, 'rb') as f:
+      metadata = pickle.load(f)
 
     data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/test')
     files = os.listdir(data_dir_path)
@@ -37,6 +38,7 @@ class DataPreprocessorTest(tf.test.TestCase):
     for f in files:
       im = Image.open(os.path.join(data_dir_path, os.path.join(data_dir_path, f)))
       files_size[f] = im.size
+      im.close()
 
     for i, f in enumerate(metadata['filenames']):
       bbox = metadata['bboxes'][i]
