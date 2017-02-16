@@ -16,7 +16,6 @@ def relative_file(path):
 
 
 class InputTest(tf.test.TestCase):
-
   def test_mnist_batches(self):
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
@@ -68,7 +67,7 @@ class InputTest(tf.test.TestCase):
     with self.test_session() as sess:
       metadata_handler = metadata_handler_fn(metadata_file_path, max_number_length, data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
-        inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
+          inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
 
       self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
       self.assertEqual(length_label_batches.get_shape(), (2, max_number_length))
@@ -82,7 +81,8 @@ class InputTest(tf.test.TestCase):
         batches.append(sess.run([data_batches, length_label_batches, numbers_label_batches]))
 
       db, llb, nlb = batches[0]
-      expected_length_labels = expected_length_labels if expected_length_labels is not None else one_hot(np.array([2, 2]), max_number_length)
+      expected_length_labels = expected_length_labels if expected_length_labels is not None else one_hot(
+        np.array([2, 2]), max_number_length)
       self.assertAllEqual(llb, expected_length_labels)
       self.assertNumbersLabelEqual(nlb, expected_numbers_labels, expected_numbers_labels_1)
 
@@ -95,7 +95,8 @@ class InputTest(tf.test.TestCase):
     batch_size, size = 2, (28, 28)
     max_number_length = 5
     with self.test_session() as sess:
-      metadata_handler = inputs.create_pickle_metadata_handler(self._test_metadata_file_path(), max_number_length, data_dir_path)
+      metadata_handler = inputs.create_pickle_metadata_handler(self._test_metadata_file_path(), max_number_length,
+                                                               data_dir_path)
       data_batches, bbox_batches = \
         inputs.bbox_batches(metadata_handler, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -107,16 +108,17 @@ class InputTest(tf.test.TestCase):
 
       # bbox of 1.png: 246, 77, 173, 223, size of 1.png: 741 x 350
       _, bb = sess.run([data_batches, bbox_batches])
-      self.assertAllClose(bb[0], [246/741, 77/350, 173/741, 223/350])
+      self.assertAllClose(bb[0], [246 / 741, 77 / 350, 173 / 741, 223 / 350])
 
       coord.request_stop()
       coord.join(threads)
       sess.close()
 
   def assertNumbersLabelEqual(self, nlb, expected_numbers_labels, expected_numbers_labels_1):
-    def expected_numbers_label(expected_numbers_labels, numbers):
-      return expected_numbers_labels if expected_numbers_labels is not None else np.concatenate(
+    def expected_numbers_label(_expected_numbers_labels, numbers):
+      return _expected_numbers_labels if _expected_numbers_labels is not None else np.concatenate(
         [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for i in range(5 - len(numbers))])])
+
     expected_numbers_labels = expected_numbers_label(expected_numbers_labels, [1, 9])
     self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
     expected_numbers_labels_1 = expected_numbers_label(expected_numbers_labels_1, [2, 3])
@@ -132,22 +134,25 @@ class InputTest(tf.test.TestCase):
     filenames, bboxes, length_labels, numbers_labels = metadata_handler()
 
   def xx_test_non_zero_size_image_when_run_in_multi_thread(self):
-    # TODO: submit this issue
+    # fixed in tf 1.0.0, so ignore this test
     max_number_length, batch_size, size = 5, 32, (64, 64)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    metadata_file_path = os.path.join(current_dir, './test_data/metadata.pickle')
+    metadata_file_path = os.path.join(current_dir, '../test_data/metadata.pickle')
     data_dir_path = os.path.join(current_dir, '../../data/train')
     with self.test_session() as sess:
       data_gen_fn = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
-      old_fn = inputs._resize_image
+      old_fn = inputs.resize_image
+
       def handle_image(dequeued_img, dequeued_bbox, *args):
         # dequeued_img1 = dequeued_img[
         #   dequeued_bbox[1]:dequeued_bbox[1]+dequeued_bbox[3], dequeued_bbox[0]:dequeued_bbox[0]+dequeued_bbox[2], :
         # ]
         dequeued_img2 = tf.image.resize_images(dequeued_img, [size[0], size[1]])
         # return tf.concat_v2([tf.shape(dequeued_img2), tf.shape(dequeued_img), dequeued_bbox], 0)
-        return tf.concat_v2([tf.cast(tf.expand_dims(tf.reduce_sum(dequeued_img2), 0), dtype=tf.int32), tf.shape(dequeued_img2), tf.shape(dequeued_img), dequeued_bbox], 0)
+        return tf.concat_v2(
+          [tf.cast(tf.expand_dims(tf.reduce_sum(dequeued_img2), 0), dtype=tf.int32), tf.shape(dequeued_img2),
+           tf.shape(dequeued_img), dequeued_bbox], 0)
 
       inputs._resize_image = handle_image
       data_batches, _, _ = inputs.batches(data_gen_fn, max_number_length, batch_size, size)
@@ -159,15 +164,13 @@ class InputTest(tf.test.TestCase):
 
       for i in range(1000):
         output = sess.run(data_batches)
-        print('image.shape=%s' % (output))
+        print('image.shape=%s' % output)
 
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=10)
 
 
-
 class DataReaderTest(tf.test.TestCase):
-
   @classmethod
   def createTestPickleMetadata(cls, test_data_count, test_dir_path=None):
     mat_metadata_file = DataReaderTest.createTestMatMetadata(test_data_count, test_dir_path)
@@ -198,6 +201,7 @@ class DataReaderTest(tf.test.TestCase):
     t_refs = test_f.create_group('#refs#')
 
     data_idx = 0
+
     def create_t_real_data(ref):
       nonlocal data_idx
       real = refs[ref]
@@ -249,5 +253,5 @@ class DataReaderTest(tf.test.TestCase):
     sampled = [gen.__next__() for i in range(30)]
 
     self.assertIsInstance(sampled[0], Data)
-    self.assertEqual(sampled[0], Data('1.png', [ BBox('1', 77, 246, 81, 219), BBox('9', 81, 323, 96, 219) ]))
-    self.assertEqual(sampled[20], Data('21.png', [ BBox(label=2, top=6.0, left=72.0, width=52.0, height=85.0) ]))
+    self.assertEqual(sampled[0], Data('1.png', [BBox('1', 77, 246, 81, 219), BBox('9', 81, 323, 96, 219)]))
+    self.assertEqual(sampled[20], Data('21.png', [BBox(label=2, top=6.0, left=72.0, width=52.0, height=85.0)]))

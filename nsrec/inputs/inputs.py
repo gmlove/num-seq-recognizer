@@ -26,7 +26,7 @@ def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, 
   for i in range(num_preprocess_threads):
     dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
     img_shape = tf.shape(dequeued_img)
-    dequeued_img = _resize_image(dequeued_img, None, is_training, size, channels)
+    dequeued_img = resize_image(dequeued_img, None, is_training, size, channels)
     bbox = bbox_queue.dequeue()
     normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
     normalized_bbox = tf.cast(normalized_bbox, tf.float32)
@@ -60,7 +60,7 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
   for i in range(num_preprocess_threads):
     dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
     # dequeued_img = tf.Print(dequeued_img, [_, tf.shape(dequeued_img)], 'dequeued image: ')
-    dequeued_img = _resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size, channels)
+    dequeued_img = resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size, channels)
     dequeued_data.append([dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()])
 
   return tf.train.batch_join(
@@ -68,7 +68,7 @@ def batches(data_generator_fn, max_number_length, batch_size, size,
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def _resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=1):
+def resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=1):
   def image_summary(name, image):
     # tf.summary.image(name, tf.expand_dims(image, 0))
     pass
@@ -206,7 +206,7 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
   data_queue = tf.train.input_producer(data, shuffle=False, element_shape=(28, 28, 1), capacity=batch_size * 3)
 
   dequeued_image = data_queue.dequeue()
-  dequeued_image = _resize_image(dequeued_image, None, is_training, size, channels=1)
+  dequeued_image = resize_image(dequeued_image, None, is_training, size, channels=1)
 
   label_queue = tf.train.input_producer(label, shuffle=False, element_shape=(10, ), capacity=batch_size * 3)
 
@@ -234,6 +234,7 @@ def read_img(img_file, bbox):
   return image
 
 pixel_depth = 255.0
+
 
 def normalize_img(image, size):
   image = misc.imresize(image, size).astype(np.float32)
