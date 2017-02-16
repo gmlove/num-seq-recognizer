@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 def rnn_layers(net, inputs, embedding_size, is_training=True, dropout_keep_prob=0.8):
   initializer = tf.random_uniform_initializer(
     minval=-0.08,
@@ -12,10 +13,10 @@ def rnn_layers(net, inputs, embedding_size, is_training=True, dropout_keep_prob=
       initializer=initializer)
     seq_embeddings = tf.nn.embedding_lookup(embedding_map, inputs)
 
-  lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(
+  lstm_cell = tf.contrib.rnn.BasicLSTMCell(
     num_units=embedding_size, state_is_tuple=True)
   if is_training:
-    lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+    lstm_cell = tf.contrib.rnn.DropoutWrapper(
       lstm_cell,
       input_keep_prob=dropout_keep_prob,
       output_keep_prob=dropout_keep_prob)

@@ -34,7 +34,7 @@ class CNNGeneralModelBase:
 
   def _setup_loss(self):
     with ops.name_scope(None, 'Loss') as sc:
-      loss = tf.nn.softmax_cross_entropy_with_logits(self.model_output, self.label_batches)
+      loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.model_output, labels=self.label_batches)
       loss = tf.reduce_mean(loss)
       self.total_loss = loss
 
@@ -228,14 +228,14 @@ class CNNNSRTrainModel(CNNNSRModelBase):
   def _setup_loss(self):
     number_losses = []
     with ops.name_scope(None, 'Loss') as sc:
-      length_loss = tf.nn.softmax_cross_entropy_with_logits(self.length_output, self.length_label_batches)
+      length_loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.length_output, labels=self.length_label_batches)
       # tf.log will cause NaN issue
       # length_loss = tf.log(tf.reduce_mean(length_loss), 'length_loss')
       length_loss = tf.reduce_mean(length_loss, name='length_loss')
       self.total_loss = length_loss
 
       for i in range(self.max_number_length):
-        number_loss = tf.nn.softmax_cross_entropy_with_logits(self.numbers_output[i], self.numbers_label_batches[i])
+        number_loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.numbers_output[i], labels=self.numbers_label_batches[i])
         # tf.log will cause NaN issue
         # number_loss = tf.log(tf.reduce_mean(number_loss), 'number%s_loss' % (i + 1))
         number_loss = tf.reduce_mean(number_loss, name='number%s_loss' % (i + 1))
@@ -358,7 +358,7 @@ def stacked_output_ops(max_number_length, length_output, numbers_output, name='o
   to_concat = [tf.reshape(length_pb, (max_number_length, ))]
   for i in range(max_number_length):
     to_concat.append(tf.reshape(tf.nn.softmax(numbers_output[i]), (11, )))
-  return tf.concat(0, to_concat, name=name)
+  return tf.concat(axis=0, values=to_concat, name=name)
 
 
 class CNNNSRToExportModel(CNNNSRInferenceModel):

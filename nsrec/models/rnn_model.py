@@ -34,7 +34,7 @@ class RNNTrainModel(cnn_model.CNNNSRTrainModel):
 
   def _setup_loss(self):
     numbers_label_batches = tf.reshape(self.numbers_label_batches, [-1, 11])
-    losses = tf.nn.softmax_cross_entropy_with_logits(self.model_output, numbers_label_batches)
+    losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.model_output, labels=numbers_label_batches)
 
     batch_loss = tf.reduce_mean(losses)
     tf.contrib.losses.add_loss(batch_loss)
