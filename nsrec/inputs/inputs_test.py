@@ -19,10 +19,6 @@ class InputTest(tf.test.TestCase):
 
   def __init__(self, *args):
     super(InputTest, self).__init__(*args)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.data_dir_path = os.path.join(current_dir, '../../data/train')
-    self.metadata_dir_path = os.path.join(current_dir, '../test_data')
-    self.metadata_file_path = os.path.join(current_dir, '../test_data/metadata.pickle')
 
   def test_mnist_batches(self):
     batch_size, size = 2, (28, 28)
@@ -48,17 +44,19 @@ class InputTest(tf.test.TestCase):
 
   def test_batches_from_pickle(self):
     numbers_labels = lambda numbers: np.concatenate(
-      [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for i in range(5 - len(numbers))])])
+      [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for _ in range(5 - len(numbers))])])
     self._test_batches(5, one_hot(np.array([2, 2]), 5), numbers_labels([1, 9]), numbers_labels([2, 3]))
 
   def test_batches_with_label_length_longer_than_max_num_length(self):
     self._test_batches(1, one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 9]), np.array([[0, 0, 1] + [0] * 8]))
 
-  def _test_batches(self, max_number_length, expected_length_labels, expected_numbers_labels, expected_numbers_labels_1):
+  def _test_batches(self, max_number_length, expected_length_labels,
+                    expected_numbers_labels, expected_numbers_labels_1):
     metadata_file_path = DataReaderTest.getTestMetadata()
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
-      metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, self.data_dir_path)
+      metadata_handler = inputs.create_pickle_metadata_handler(
+        metadata_file_path, max_number_length, DataReaderTest.train_data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
           inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -88,7 +86,7 @@ class InputTest(tf.test.TestCase):
     with self.test_session() as sess:
       metadata_file_path = DataReaderTest.getTestMetadata()
       metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length,
-                                                               self.data_dir_path)
+                                                               DataReaderTest.train_data_dir_path)
       data_batches, bbox_batches = \
         inputs.bbox_batches(metadata_handler, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -111,7 +109,8 @@ class InputTest(tf.test.TestCase):
     # TODO: fix this issue
     max_number_length, batch_size, size = 5, 32, (64, 64)
     with self.test_session() as sess:
-      data_gen_fn = inputs.create_pickle_metadata_handler(self.metadata_file_path, max_number_length, self.data_dir_path)
+      data_gen_fn = inputs.create_pickle_metadata_handler(
+        self.metadata_file_path, max_number_length, DataReaderTest.train_data_dir_path)
       old_fn = inputs.resize_image
 
       def handle_image(dequeued_img, dequeued_bbox, *args):
@@ -142,10 +141,15 @@ class InputTest(tf.test.TestCase):
 
 class DataReaderTest(tf.test.TestCase):
   test_data_count = 25
-  test_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
+  test_dir_path = relative_file('../test_data')
+  train_mat_metadata_file = os.path.join(test_dir_path, '../../data/train/digitStruct.mat')
+  test_metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
+  test_mat_metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
+  train_data_dir_path = relative_file('../../data/train')
+  _test_metadata_file_created = False
 
   @classmethod
-  def getTestMetadata(cls):
+  def _createTestMetadata(cls):
     mat_metadata_file = DataReaderTest.getMatTestMetadata()
 
     filenames, labels, bboxes = [], [], []
@@ -154,18 +158,20 @@ class DataReaderTest(tf.test.TestCase):
       labels.append(data.label)
       bboxes.append(data.bbox())
 
-    metadata_file = os.path.join(DataReaderTest.test_dir_path, 'metadata.pickle')
-    with open(metadata_file, 'wb') as f:
+    with open(DataReaderTest.test_metadata_file, 'wb') as f:
       pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, f)
 
-    return metadata_file
+  @classmethod
+  def getTestMetadata(cls):
+    if not DataReaderTest._test_metadata_file_created:
+      DataReaderTest._createTestMetadata()
+    return DataReaderTest.test_metadata_file
 
   @classmethod
   def getMatTestMetadata(cls):
-    metadata_file = os.path.join(DataReaderTest.test_dir_path, 'digitStruct.mat')
-    test_f = h5py.File(metadata_file, 'w')
+    test_f = h5py.File(DataReaderTest.test_mat_metadata_file, 'w')
 
-    f = h5py.File(os.path.join(DataReaderTest.test_dir_path, '../../data/train/digitStruct.mat'))
+    f = h5py.File(DataReaderTest.train_mat_metadata_file)
     refs, ds = f['#refs#'], f['digitStruct']
 
     t_ds = test_f.create_group('digitStruct')
@@ -207,13 +213,13 @@ class DataReaderTest(tf.test.TestCase):
     create_t_element(t_ds, 'name', ds, DataReaderTest.test_data_count)
     create_t_element(t_ds, 'bbox', ds, DataReaderTest.test_data_count)
     test_f.close()
-    return metadata_file
+    return DataReaderTest.test_mat_metadata_file
 
   def test_create_metadata_file_for_testing(self):
     DataReaderTest.getMatTestMetadata()
 
     data_pack = []
-    for i, data in enumerate(metadata_generator(relative_file('../test_data/digitStruct.mat'))):
+    for i, data in enumerate(metadata_generator(DataReaderTest.test_mat_metadata_file)):
       data_pack.append(data)
     self.assertEqual(data_pack[0].label, '19')
     self.assertEqual(data_pack[20].label, '2')
@@ -221,7 +227,7 @@ class DataReaderTest(tf.test.TestCase):
     self.assertEqual(data_pack[24].filename, '25.png')
 
   def test_metadata_generator(self):
-    gen = metadata_generator(relative_file('../../data/train/digitStruct.mat'))
+    gen = metadata_generator(DataReaderTest.train_mat_metadata_file)
     sampled = [gen.__next__() for i in range(30)]
 
     self.assertIsInstance(sampled[0], Data)
