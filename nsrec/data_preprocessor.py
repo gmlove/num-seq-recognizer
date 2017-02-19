@@ -1,6 +1,7 @@
 import os
 import random
 
+import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
 from PIL import Image
@@ -47,7 +48,8 @@ def main(args, **kwargs):
   if output_file_path.endswith('.pickle'):
     write_pickle(final_bboxes, final_filenames, final_labels, output_file_path)
   elif output_file_path.endswith('.tfrecords'):
-    write_tf_records(final_filenames, final_labels, final_bboxes, data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
+    write_tf_records(final_filenames, final_labels, FLAGS.max_number_length, final_bboxes,
+                     data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
   else:
     raise Exception('output_file_path must end with .pickle or .tfrecords: %s' % output_file_path)
 
@@ -134,22 +136,35 @@ def random_bbox(count, bbox, size):
 
 
 def _int64_feature(values):
-  return tf.train.Feature(int64_list=tf.train.Int64List(value=map(lambda i: int(i), values)))
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
 
 
 def _bytes_feature(value):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def write_tf_records(filenames, labels, bboxes, data_dir_path, output_file_path):
+def _normalize_label(label, max_number_length):
+  label = [int(i) for i in label]
+  label = label[:max_number_length]
+  normalized = np.array([10] * max_number_length)
+  normalized[0: len(label)] = label
+  return normalized
+
+
+def write_tf_records(filenames, labels, max_number_length, bboxes, data_dir_path, output_file_path):
   print('Writing', output_file_path)
   writer = tf.python_io.TFRecordWriter(output_file_path)
+
+  labels_lengths = [min(max_number_length, len(l)) for l in labels]
+  normalized_labels = [_normalize_label(l, max_number_length) for l in labels]
+
   for index in range(len(filenames)):
-    image_raw = open(os.path.join(data_dir_path, filenames[index]), 'rb').read()
+    image_png = open(os.path.join(data_dir_path, filenames[index]), 'rb').read()
     example = tf.train.Example(features=tf.train.Features(feature={
-      'label': _int64_feature(labels[index]),
+      'label': _int64_feature(normalized_labels[index]),
+      'length': _int64_feature([labels_lengths[index]]),
       'bbox': _int64_feature(bboxes[index]),
-      'image_raw': _bytes_feature(image_raw)}))
+      'image_png': _bytes_feature(image_png)}))
     writer.write(example.SerializeToString())
   writer.close()
 

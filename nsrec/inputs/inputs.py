@@ -10,24 +10,24 @@ from nsrec.inputs.models import BBox, Data
 from nsrec.utils.np_ops import one_hot
 
 
-def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, is_training=True, channels=3):
-  filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
-  tf.logging.info('input data count: %s', len(filenames))
-
-  filename_queue = tf.train.string_input_producer(
-    filenames, shuffle=False, capacity=batch_size * 3)
-  bbox_queue = tf.train.input_producer(
-    tf.constant(bboxes, dtype=tf.int32), shuffle=False, element_shape=(4, ), capacity=batch_size * 3)
-
-  reader = tf.WholeFileReader()
-  _, dequeued_record_string = reader.read(filename_queue)
+def bbox_batches(data_file_path, batch_size, size, num_preprocess_threads=1, is_training=True, channels=3):
+  filename_queue = tf.train.string_input_producer([data_file_path])
+  reader = tf.TFRecordReader()
+  _, serialized_example = reader.read(filename_queue)
+  features = tf.parse_single_example(
+    serialized_example,
+    features={
+      'image_png': tf.FixedLenFeature([], tf.string),
+      'bbox': tf.FixedLenFeature([4], tf.int64),
+    })
+  image, bbox = features['image_png'], features['bbox']
+  bbox = tf.cast(bbox, tf.int32)
 
   dequeued_data = []
   for i in range(num_preprocess_threads):
-    dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
+    dequeued_img = tf.image.decode_png(image, channels)
     img_shape = tf.shape(dequeued_img)
     dequeued_img = resize_image(dequeued_img, None, is_training, size, channels)
-    bbox = bbox_queue.dequeue()
     normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
     normalized_bbox = tf.cast(normalized_bbox, tf.float32)
     dequeued_data.append([dequeued_img, normalized_bbox])
@@ -37,31 +37,26 @@ def bbox_batches(data_generator_fn, batch_size, size, num_preprocess_threads=1, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def batches(data_generator_fn, max_number_length, batch_size, size,
-            num_preprocess_threads=1, is_training=True, channels=1):
-  filenames, bboxes, length_labels, numbers_labels = data_generator_fn()
-
-  tf.logging.info('input data count: %s', len(filenames))
-
-  filename_queue = tf.train.string_input_producer(
-    filenames, shuffle=False, capacity=batch_size * 3)
-  length_label_queue = tf.train.input_producer(
-    tf.constant(length_labels), shuffle=False, element_shape=(max_number_length, ), capacity=batch_size * 3)
-  numbers_label_queue = tf.train.input_producer(
-    tf.constant(numbers_labels), shuffle=False, element_shape=(max_number_length, 11), capacity=batch_size * 3)
-  bbox_queue = tf.train.input_producer(
-    tf.constant(bboxes, dtype=tf.int32), shuffle=False, element_shape=(4, ), capacity=batch_size * 3)
-
-  reader = tf.WholeFileReader()
-  _, dequeued_record_string = reader.read(filename_queue)
-
-  # TODO: why non-zero size image issue if num_preprocess_threads > 1
+def batches(data_file_path, max_number_length, batch_size, size,
+                           num_preprocess_threads=1, is_training=True, channels=1):
+  filename_queue = tf.train.string_input_producer([data_file_path])
+  reader = tf.TFRecordReader()
+  _, serialized_example = reader.read(filename_queue)
+  features = tf.parse_single_example(
+    serialized_example,
+    features={
+      'image_png': tf.FixedLenFeature([], tf.string),
+      'label': tf.FixedLenFeature([max_number_length], tf.int64),
+      'length': tf.FixedLenFeature([1], tf.int64),
+      'bbox': tf.FixedLenFeature([4], tf.int64),
+    })
+  image, bbox, label, length = features['image_png'], features['bbox'], features['label'], features['length']
+  bbox = tf.cast(bbox, tf.int32)
   dequeued_data = []
   for i in range(num_preprocess_threads):
-    dequeued_img = tf.image.decode_png(dequeued_record_string, channels)
-    # dequeued_img = tf.Print(dequeued_img, [_, tf.shape(dequeued_img)], 'dequeued image: ')
-    dequeued_img = resize_image(dequeued_img, bbox_queue.dequeue(), is_training, size, channels)
-    dequeued_data.append([dequeued_img, length_label_queue.dequeue(), numbers_label_queue.dequeue()])
+    dequeued_img = tf.image.decode_png(image, channels)
+    dequeued_img = resize_image(dequeued_img, bbox, is_training, size, channels)
+    dequeued_data.append([dequeued_img, tf.one_hot(length - 1, max_number_length)[0], tf.one_hot(label, 11)])
 
   return tf.train.batch_join(
     dequeued_data,
@@ -96,45 +91,6 @@ def resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=1):
   image_summary("final_image", dequeued_img)
 
   return dequeued_img
-
-
-def _to_data(filename, label, max_number_length, data_dir_path):
-  # fix label if longer than max_number_length
-  label = label[:max_number_length]
-  if max_number_length == 1:
-    numbers_one_hot = [one_hot(ord(label) - ord('0') + 1, 11)]
-  else:
-    numbers_one_hot = [one_hot(ord(ch) - ord('0') + 1, 11) for ch in label]
-  no_number_one_hot = [one_hot(11, 11) for i in range(max_number_length - len(label))]
-  filename = os.path.join(data_dir_path, filename)
-  length_label = one_hot(len(label), max_number_length)
-  if len(label) < max_number_length:
-    numbers_label = np.concatenate([numbers_one_hot, no_number_one_hot])
-  else:
-    numbers_label = numbers_one_hot
-  return filename, length_label, numbers_label
-
-
-def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
-
-  def handler():
-    with open(metadata_file_path, 'rb') as f:
-      metadata = pickle.load(f)
-    short_filenames, labels, bboxes = metadata['filenames'], metadata['labels'], metadata['bboxes']
-
-    filenames = []
-    length_labels = np.ndarray((len(short_filenames), max_number_length))
-    numbers_labels = np.ndarray((len(short_filenames), max_number_length, 11))
-
-    for i, filename in enumerate(short_filenames):
-      filename, length_label, numbers_label = _to_data(filename, labels[i], max_number_length, data_dir_path)
-      length_labels[i, :] = length_label
-      numbers_labels[i, :, :] = numbers_label
-      filenames.append(filename)
-
-    return filenames, bboxes, length_labels, numbers_labels
-
-  return handler
 
 
 def metadata_generator(file_path):

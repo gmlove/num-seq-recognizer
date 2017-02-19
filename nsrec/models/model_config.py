@@ -63,11 +63,9 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
     self.data_dir_path = os.path.join(current_dir, '../../data/train')
     self.metadata_file_path = os.path.join(self.data_dir_path, 'metadata.pickle')
     self.max_number_length = 5
-    self.create_metadata_handler_fn = inputs.create_pickle_metadata_handler
     self.num_classes = self.max_number_length
 
-    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length',
-                 'create_metadata_handler_fn']:
+    for attr in ['data_dir_path', 'metadata_file_path', 'max_number_length']:
       if kwargs.get(attr, None) is None:
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))

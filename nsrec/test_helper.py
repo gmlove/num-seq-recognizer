@@ -2,29 +2,33 @@ import os
 
 import h5py
 
+from nsrec.data_preprocessor import write_tf_records
 from nsrec.inputs import metadata_generator
-from nsrec.inputs.inputs_test import relative_file
-from six.moves import cPickle as pickle
+
+
+def relative_file(path):
+  return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
 
 test_data_count = 25
-test_dir_path = relative_file('../test_data')
-train_mat_metadata_file = os.path.join(test_dir_path, '../../data/train/digitStruct.mat')
+test_dir_path = relative_file('test_data')
+train_mat_metadata_file = relative_file('../data/train/digitStruct.mat')
 test_metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
+test_data_file = os.path.join(test_dir_path, 'data.tfrecords')
 test_mat_metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
-train_data_dir_path = relative_file('../../data/train')
+train_data_dir_path = relative_file('../data/train')
 _test_metadata_file_created = False
 
 
 def get_test_metadata():
   global _test_metadata_file_created
   if not _test_metadata_file_created:
-    _create_test_metadata()
+    _create_test_data()
     _test_metadata_file_created = True
-  return test_metadata_file
+  return test_data_file
 
 
-def _create_test_metadata():
+def _create_test_data():
   mat_metadata_file = get_mat_test_metadata()
 
   filenames, labels, bboxes = [], [], []
@@ -33,9 +37,7 @@ def _create_test_metadata():
     labels.append(data.label)
     bboxes.append(data.bbox())
 
-  with open(test_metadata_file, 'wb') as f:
-    pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, f)
-
+  write_tf_records(filenames, labels, 5, bboxes, train_data_dir_path, test_data_file)
 
 def get_mat_test_metadata():
   test_f = h5py.File(test_mat_metadata_file, 'w')

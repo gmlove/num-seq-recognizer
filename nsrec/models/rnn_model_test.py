@@ -1,18 +1,14 @@
-import os
-
 import tensorflow as tf
 from nsrec import test_helper
 from nsrec.models.cnn_model import CNNNSRModelConfig
 from nsrec.models.rnn_model import RNNTrainModel
-from nsrec import inputs
 
 
 class RNNModelTest(tf.test.TestCase):
 
   def test_train_rnn(self):
     metadata_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
-                               create_metadata_handler_fn=inputs.create_pickle_metadata_handler)
+    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
 
     with self.test_session():
       model = RNNTrainModel(config)

@@ -97,10 +97,8 @@ class CNNBBoxTrainModel(CNNGeneralModelBase):
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      metadata_handler = config.create_metadata_handler_fn(
-        config.metadata_file_path, self.config.max_number_length, config.data_dir_path)
       self.data_batches, self.label_batches = \
-        inputs.bbox_batches(metadata_handler, config.batch_size, config.size,
+        inputs.bbox_batches(config.metadata_file_path, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
 
   def _setup_loss(self):
@@ -170,10 +168,8 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      metadata_handler = config.create_metadata_handler_fn(
-        config.metadata_file_path, config.max_number_length, config.data_dir_path)
       self.data_batches, self.label_batches, _ = \
-        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
+        inputs.batches(config.metadata_file_path, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
 
   def _setup_accuracy(self):
@@ -217,10 +213,8 @@ class CNNNSRTrainModel(CNNNSRModelBase):
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      metadata_handler = config.create_metadata_handler_fn(
-        config.metadata_file_path, config.max_number_length, config.data_dir_path)
       self.data_batches, self.length_label_batches, numbers_label_batches = \
-        inputs.batches(metadata_handler, config.max_number_length, config.batch_size, config.size,
+        inputs.batches(config.metadata_file_path, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
       for i in range(self.max_number_length):
         self.numbers_label_batches.append(numbers_label_batches[:, i, :])
