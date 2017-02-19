@@ -31,6 +31,7 @@ tf.flags.DEFINE_integer("min_global_step", 500,
                         "Minimum global step to run evaluation.")
 
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
+tf.flags.DEFINE_integer("num_preprocess_threads", 2, "Number of pre-processor threads")
 
 
 def evaluate_model(sess, model, global_step, summary_writer, summary_op):
