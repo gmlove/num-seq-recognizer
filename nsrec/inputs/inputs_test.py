@@ -134,7 +134,7 @@ class InputTest(tf.test.TestCase):
     filenames, bboxes, length_labels, numbers_labels = metadata_handler()
 
   def xx_test_non_zero_size_image_when_run_in_multi_thread(self):
-    # fixed in tf 1.0.0, so ignore this test
+    # TODO: fix this issue
     max_number_length, batch_size, size = 5, 32, (64, 64)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -154,9 +154,9 @@ class InputTest(tf.test.TestCase):
           [tf.cast(tf.expand_dims(tf.reduce_sum(dequeued_img2), 0), dtype=tf.int32), tf.shape(dequeued_img2),
            tf.shape(dequeued_img), dequeued_bbox], 0)
 
-      inputs._resize_image = handle_image
-      data_batches, _, _ = inputs.batches(data_gen_fn, max_number_length, batch_size, size)
-      inputs._resize_image = old_fn
+      inputs.resize_image = handle_image
+      data_batches, _, _ = inputs.batches(data_gen_fn, max_number_length, batch_size, size, num_preprocess_threads=3)
+      inputs.resize_image = old_fn
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
       coord = tf.train.Coordinator()
