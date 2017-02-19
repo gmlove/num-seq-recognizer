@@ -13,13 +13,12 @@ FLAGS = tf.app.flags.FLAGS
 tf.flags.DEFINE_string("mat_metadata_file_path", "",
                        "Mat format metadata file path, use ',' to separate multiple files.")
 tf.flags.DEFINE_string("data_dir_path", "",
-                       "Mat format metadata file path, use ',' to separate multiple paths, should be in the same order as mat_metadata_file_path.")
+                       "Data file path, use ',' to separate multiple paths, should be in the same order as mat_metadata_file_path.")
 tf.flags.DEFINE_string("final_data_dir_path", "",
                        "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
-tf.flags.DEFINE_bool("rand_bbox_count", 5,
-                        "If generate rand bbox.")
+tf.flags.DEFINE_bool("rand_bbox_count", 5, "How many rand bbox to generate.")
 
 
 def main(args, **kwargs):

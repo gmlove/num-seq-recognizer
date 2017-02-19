@@ -36,9 +36,15 @@ python3 nsrec/data_preprocessor.py \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/extra/digitStruct.mat,./data/extra/digitStruct.mat \
+    --mat_metadata_file_path=./data/extra/digitStruct.mat,./data/train/digitStruct.mat \
     --data_dir_path=./data/extra,./data/train \
-    --output_file_path=./data/extra/metadata.pickle \
+    --output_file_path=./data/extra-train.raw.tfrecords \
+    --rand_bbox_count=0
+
+python3 nsrec/data_preprocessor.py \
+    --mat_metadata_file_path=./data/test/digitStruct.mat \
+    --data_dir_path=./data/test \
+    --output_file_path=./data/test.raw.tfrecords \
     --rand_bbox_count=0
 
 ```
@@ -47,6 +53,6 @@ python3 nsrec/data_preprocessor.py \
 
 ```bash
 python3 nsrec/train.py \
-    --metadata_file_path=./data/train/metadata.pickle \
+    --data_file_path=./data/extra-train.raw.tfrecords \
     --log_every_n_steps=50
 ```
