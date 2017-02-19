@@ -16,6 +16,14 @@ def relative_file(path):
 
 
 class InputTest(tf.test.TestCase):
+
+  def __init__(self, *args):
+    super(InputTest, self).__init__(*args)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.data_dir_path = os.path.join(current_dir, '../../data/train')
+    self.metadata_dir_path = os.path.join(current_dir, '../test_data')
+    self.metadata_file_path = os.path.join(current_dir, '../test_data/metadata.pickle')
+
   def test_mnist_batches(self):
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
@@ -39,26 +47,18 @@ class InputTest(tf.test.TestCase):
       sess.close()
 
   def test_batches_from_pickle(self):
-    metadata_file_path = self._test_metadata_file_path()
-    self._test_batches(metadata_file_path)
-
-  def _test_metadata_file_path(self):
-    metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
-    metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
-    return metadata_file_path
+    numbers_labels = lambda numbers: np.concatenate(
+      [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for i in range(5 - len(numbers))])])
+    self._test_batches(5, one_hot(np.array([2, 2]), 5), numbers_labels([1, 9]), numbers_labels([2, 3]))
 
   def test_batches_with_label_length_longer_than_max_num_length(self):
-    self._test_batches(self._test_metadata_file_path(), 1,
-                       one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 9]), np.array([[0, 0, 1] + [0] * 8]))
+    self._test_batches(1, one_hot(np.array([1, 1]), 1), np.array([[0, 1] + [0] * 9]), np.array([[0, 0, 1] + [0] * 8]))
 
-  def _test_batches(self, metadata_file_path, max_number_length=5,
-                    expected_length_labels=None, expected_numbers_labels=None,
-                    expected_numbers_labels_1=None, data_dir_path=None):
-    data_dir_path = data_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/train')
-
+  def _test_batches(self, max_number_length, expected_length_labels, expected_numbers_labels, expected_numbers_labels_1):
+    metadata_file_path = DataReaderTest.getTestMetadata()
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
-      metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
+      metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, self.data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
           inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -74,22 +74,21 @@ class InputTest(tf.test.TestCase):
         batches.append(sess.run([data_batches, length_label_batches, numbers_label_batches]))
 
       db, llb, nlb = batches[0]
-      expected_length_labels = expected_length_labels if expected_length_labels is not None else one_hot(
-        np.array([2, 2]), max_number_length)
       self.assertAllEqual(llb, expected_length_labels)
-      self.assertNumbersLabelEqual(nlb, expected_numbers_labels, expected_numbers_labels_1)
+      self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
+      self.assertNDArrayNear(nlb[1], expected_numbers_labels_1, 1e-5)
 
       coord.request_stop()
       coord.join(threads)
       sess.close()
 
   def test_bbox_batches(self):
-    data_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/train')
     batch_size, size = 2, (28, 28)
     max_number_length = 5
     with self.test_session() as sess:
-      metadata_handler = inputs.create_pickle_metadata_handler(self._test_metadata_file_path(), max_number_length,
-                                                               data_dir_path)
+      metadata_file_path = DataReaderTest.getTestMetadata()
+      metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length,
+                                                               self.data_dir_path)
       data_batches, bbox_batches = \
         inputs.bbox_batches(metadata_handler, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -107,25 +106,12 @@ class InputTest(tf.test.TestCase):
       coord.join(threads)
       sess.close()
 
-  def assertNumbersLabelEqual(self, nlb, expected_numbers_labels, expected_numbers_labels_1):
-    def expected_numbers_label(_expected_numbers_labels, numbers):
-      return _expected_numbers_labels if _expected_numbers_labels is not None else np.concatenate(
-        [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for i in range(5 - len(numbers))])])
-
-    expected_numbers_labels = expected_numbers_label(expected_numbers_labels, [1, 9])
-    self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
-    expected_numbers_labels_1 = expected_numbers_label(expected_numbers_labels_1, [2, 3])
-    self.assertNDArrayNear(nlb[1], expected_numbers_labels_1, 1e-5)
 
   def xx_test_non_zero_size_image_when_run_in_multi_thread(self):
     # TODO: fix this issue
     max_number_length, batch_size, size = 5, 32, (64, 64)
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    metadata_file_path = os.path.join(current_dir, '../test_data/metadata.pickle')
-    data_dir_path = os.path.join(current_dir, '../../data/train')
     with self.test_session() as sess:
-      data_gen_fn = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length, data_dir_path)
+      data_gen_fn = inputs.create_pickle_metadata_handler(self.metadata_file_path, max_number_length, self.data_dir_path)
       old_fn = inputs.resize_image
 
       def handle_image(dequeued_img, dequeued_bbox, *args):
@@ -155,9 +141,12 @@ class InputTest(tf.test.TestCase):
 
 
 class DataReaderTest(tf.test.TestCase):
+  test_data_count = 25
+  test_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
+
   @classmethod
-  def createTestPickleMetadata(cls, test_data_count, test_dir_path=None):
-    mat_metadata_file = DataReaderTest.createTestMatMetadata(test_data_count, test_dir_path)
+  def getTestMetadata(cls):
+    mat_metadata_file = DataReaderTest.createTestMatMetadata(DataReaderTest.test_data_count, DataReaderTest.test_dir_path)
 
     filenames, labels, bboxes = [], [], []
     for i, data in enumerate(metadata_generator(mat_metadata_file)):
@@ -165,7 +154,7 @@ class DataReaderTest(tf.test.TestCase):
       labels.append(data.label)
       bboxes.append(data.bbox())
 
-    metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
+    metadata_file = os.path.join(DataReaderTest.test_dir_path, 'metadata.pickle')
     with open(metadata_file, 'wb') as f:
       pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, f)
 
