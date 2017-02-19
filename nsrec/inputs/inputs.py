@@ -38,7 +38,7 @@ def bbox_batches(data_file_path, batch_size, size, num_preprocess_threads=1, is_
 
 
 def batches(data_file_path, max_number_length, batch_size, size,
-                           num_preprocess_threads=1, is_training=True, channels=1):
+            num_preprocess_threads=1, is_training=True, channels=1):
   filename_queue = tf.train.string_input_producer([data_file_path])
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)

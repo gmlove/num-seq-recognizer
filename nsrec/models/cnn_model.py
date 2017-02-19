@@ -500,7 +500,6 @@ def create_model(FLAGS, mode='train'):
     raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
 
   params_dict = {
-    'batch_size': FLAGS.batch_size,
     'net_type': FLAGS.net_type,
     'gray_scale': FLAGS.gray_scale
   }
@@ -510,13 +509,17 @@ def create_model(FLAGS, mode='train'):
     if mode in ['train', 'eval']:
       params_dict.update({
         'num_preprocess_threads': FLAGS.num_preprocess_threads,
-        'data_file_path': FLAGS.data_file_path
+        'data_file_path': FLAGS.data_file_path,
+        'batch_size': FLAGS.batch_size,
       })
       config = CNNNSRModelConfig(**params_dict)
     else:
       config = CNNNSRInferModelConfig(**params_dict)
   else:
-    params_dict.update({'num_classes': 10})
+    params_dict.update({
+      'num_classes': 10,
+      'batch_size': FLAGS.batch_size,
+    })
     config = CNNGeneralModelConfig(**params_dict)
 
   return model_clz[key](config)
