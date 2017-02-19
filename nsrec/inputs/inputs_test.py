@@ -146,7 +146,7 @@ class DataReaderTest(tf.test.TestCase):
 
   @classmethod
   def getTestMetadata(cls):
-    mat_metadata_file = DataReaderTest.createTestMatMetadata(DataReaderTest.test_data_count, DataReaderTest.test_dir_path)
+    mat_metadata_file = DataReaderTest.getMatTestMetadata()
 
     filenames, labels, bboxes = [], [], []
     for i, data in enumerate(metadata_generator(mat_metadata_file)):
@@ -161,12 +161,11 @@ class DataReaderTest(tf.test.TestCase):
     return metadata_file
 
   @classmethod
-  def createTestMatMetadata(cls, test_data_count, test_dir_path=None):
-    test_dir_path = test_dir_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
-    metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
+  def getMatTestMetadata(cls):
+    metadata_file = os.path.join(DataReaderTest.test_dir_path, 'digitStruct.mat')
     test_f = h5py.File(metadata_file, 'w')
 
-    f = h5py.File(os.path.join(test_dir_path, '../../data/train/digitStruct.mat'))
+    f = h5py.File(os.path.join(DataReaderTest.test_dir_path, '../../data/train/digitStruct.mat'))
     refs, ds = f['#refs#'], f['digitStruct']
 
     t_ds = test_f.create_group('digitStruct')
@@ -205,13 +204,13 @@ class DataReaderTest(tf.test.TestCase):
       for i in range(data_count):
         created_dataset[i, 0] = create_t_real_data(reshaped[i])
 
-    create_t_element(t_ds, 'name', ds, test_data_count)
-    create_t_element(t_ds, 'bbox', ds, test_data_count)
+    create_t_element(t_ds, 'name', ds, DataReaderTest.test_data_count)
+    create_t_element(t_ds, 'bbox', ds, DataReaderTest.test_data_count)
     test_f.close()
     return metadata_file
 
   def test_create_metadata_file_for_testing(self):
-    DataReaderTest.createTestMatMetadata(25)
+    DataReaderTest.getMatTestMetadata()
 
     data_pack = []
     for i, data in enumerate(metadata_generator(relative_file('../test_data/digitStruct.mat'))):
