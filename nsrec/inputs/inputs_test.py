@@ -1,13 +1,9 @@
 import os
 
-import h5py
 import numpy as np
-from six.moves import cPickle as pickle
 
 import tensorflow as tf
-from nsrec import inputs
-from nsrec.inputs import metadata_generator
-from nsrec.inputs.models import Data, BBox
+from nsrec import inputs, test_helper
 from nsrec.utils.np_ops import one_hot
 
 
@@ -52,11 +48,11 @@ class InputTest(tf.test.TestCase):
 
   def _test_batches(self, max_number_length, expected_length_labels,
                     expected_numbers_labels, expected_numbers_labels_1):
-    metadata_file_path = DataReaderTest.getTestMetadata()
+    metadata_file_path = test_helper.get_test_metadata()
     batch_size, size = 2, (28, 28)
     with self.test_session() as sess:
       metadata_handler = inputs.create_pickle_metadata_handler(
-        metadata_file_path, max_number_length, DataReaderTest.train_data_dir_path)
+        metadata_file_path, max_number_length, test_helper.train_data_dir_path)
       data_batches, length_label_batches, numbers_label_batches = \
           inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -80,13 +76,48 @@ class InputTest(tf.test.TestCase):
       coord.join(threads)
       sess.close()
 
+  def test_batches_from_tfrecords(self):
+    numbers_labels = lambda numbers: np.concatenate(
+      [one_hot(np.array(numbers) + 1, 11), np.array([one_hot(11, 11) for _ in range(5 - len(numbers))])])
+    max_number_length, expected_length_labels, expected_numbers_labels, expected_numbers_labels_1 = \
+        5, one_hot(np.array([2, 2]), 5), numbers_labels([1, 9]), numbers_labels([2, 3])
+
+    metadata_file_path = test_helper.get_test_metadata()
+    batch_size, size = 2, (28, 28)
+    with self.test_session() as sess:
+      metadata_handler = inputs.create_pickle_metadata_handler(
+        metadata_file_path, max_number_length, test_helper.train_data_dir_path)
+      data_batches, length_label_batches, numbers_label_batches = \
+        inputs.batches(metadata_handler, max_number_length, batch_size, size, num_preprocess_threads=1, channels=3)
+
+      self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
+      self.assertEqual(length_label_batches.get_shape(), (2, max_number_length))
+      self.assertEqual(numbers_label_batches.get_shape(), (2, max_number_length, 11))
+
+      coord = tf.train.Coordinator()
+      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+      batches = []
+      for i in range(5):
+        batches.append(sess.run([data_batches, length_label_batches, numbers_label_batches]))
+
+      db, llb, nlb = batches[0]
+      self.assertAllEqual(llb, expected_length_labels)
+      self.assertNDArrayNear(nlb[0], expected_numbers_labels, 1e-5)
+      self.assertNDArrayNear(nlb[1], expected_numbers_labels_1, 1e-5)
+
+      coord.request_stop()
+      coord.join(threads)
+      sess.close()
+
+
   def test_bbox_batches(self):
     batch_size, size = 2, (28, 28)
     max_number_length = 5
     with self.test_session() as sess:
-      metadata_file_path = DataReaderTest.getTestMetadata()
+      metadata_file_path = test_helper.get_test_metadata()
       metadata_handler = inputs.create_pickle_metadata_handler(metadata_file_path, max_number_length,
-                                                               DataReaderTest.train_data_dir_path)
+                                                               test_helper.train_data_dir_path)
       data_batches, bbox_batches = \
         inputs.bbox_batches(metadata_handler, batch_size, size, num_preprocess_threads=1, channels=3)
 
@@ -110,7 +141,7 @@ class InputTest(tf.test.TestCase):
     max_number_length, batch_size, size = 5, 32, (64, 64)
     with self.test_session() as sess:
       data_gen_fn = inputs.create_pickle_metadata_handler(
-        self.metadata_file_path, max_number_length, DataReaderTest.train_data_dir_path)
+        self.metadata_file_path, max_number_length, test_helper.train_data_dir_path)
       old_fn = inputs.resize_image
 
       def handle_image(dequeued_img, dequeued_bbox, *args):
@@ -139,97 +170,3 @@ class InputTest(tf.test.TestCase):
       coord.join(threads, stop_grace_period_secs=10)
 
 
-class DataReaderTest(tf.test.TestCase):
-  test_data_count = 25
-  test_dir_path = relative_file('../test_data')
-  train_mat_metadata_file = os.path.join(test_dir_path, '../../data/train/digitStruct.mat')
-  test_metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
-  test_mat_metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
-  train_data_dir_path = relative_file('../../data/train')
-  _test_metadata_file_created = False
-
-  @classmethod
-  def _createTestMetadata(cls):
-    mat_metadata_file = DataReaderTest.getMatTestMetadata()
-
-    filenames, labels, bboxes = [], [], []
-    for i, data in enumerate(metadata_generator(mat_metadata_file)):
-      filenames.append(data.filename)
-      labels.append(data.label)
-      bboxes.append(data.bbox())
-
-    with open(DataReaderTest.test_metadata_file, 'wb') as f:
-      pickle.dump({'filenames': filenames, 'labels': labels, 'bboxes': bboxes}, f)
-
-  @classmethod
-  def getTestMetadata(cls):
-    if not DataReaderTest._test_metadata_file_created:
-      DataReaderTest._createTestMetadata()
-    return DataReaderTest.test_metadata_file
-
-  @classmethod
-  def getMatTestMetadata(cls):
-    test_f = h5py.File(DataReaderTest.test_mat_metadata_file, 'w')
-
-    f = h5py.File(DataReaderTest.train_mat_metadata_file)
-    refs, ds = f['#refs#'], f['digitStruct']
-
-    t_ds = test_f.create_group('digitStruct')
-    ref_dtype = h5py.special_dtype(ref=h5py.Reference)
-    t_refs = test_f.create_group('#refs#')
-
-    data_idx = 0
-
-    def create_t_real_data(ref):
-      nonlocal data_idx
-      real = refs[ref]
-      if isinstance(real, h5py.Group):
-        created_group = t_refs.create_group('data_%s' % data_idx)
-        data_idx += 1
-        attrs = 'label top left width height'.split()
-        for attr in attrs:
-          reshaped = real[attr].value.reshape(-1)
-          data_count = reshaped.shape[0]
-          if isinstance(reshaped[0], h5py.Reference):
-            t_real_attr = created_group.create_dataset(attr, shape=(data_count, 1), dtype=ref_dtype)
-            for i in range(data_count):
-              t_real_attr[i, 0] = create_t_real_data(reshaped[i])
-          else:
-            created_group.create_dataset(attr, data=real[attr].value)
-            data_idx += 1
-        return created_group.ref
-      else:
-        t_real = t_refs.create_dataset('data_%s' % data_idx, data=real.value)
-        data_idx += 1
-        return t_real.ref
-
-    def create_t_element(t_group, name, ref_group, data_count):
-      reshaped = ref_group[name].value.reshape(-1)
-      data_count = reshaped.shape[0] if data_count is None else data_count
-      created_dataset = t_group.create_dataset(name, (data_count, 1), dtype=ref_dtype)
-      for i in range(data_count):
-        created_dataset[i, 0] = create_t_real_data(reshaped[i])
-
-    create_t_element(t_ds, 'name', ds, DataReaderTest.test_data_count)
-    create_t_element(t_ds, 'bbox', ds, DataReaderTest.test_data_count)
-    test_f.close()
-    return DataReaderTest.test_mat_metadata_file
-
-  def test_create_metadata_file_for_testing(self):
-    DataReaderTest.getMatTestMetadata()
-
-    data_pack = []
-    for i, data in enumerate(metadata_generator(DataReaderTest.test_mat_metadata_file)):
-      data_pack.append(data)
-    self.assertEqual(data_pack[0].label, '19')
-    self.assertEqual(data_pack[20].label, '2')
-    self.assertEqual(data_pack[24].label, '601')
-    self.assertEqual(data_pack[24].filename, '25.png')
-
-  def test_metadata_generator(self):
-    gen = metadata_generator(DataReaderTest.train_mat_metadata_file)
-    sampled = [gen.__next__() for i in range(30)]
-
-    self.assertIsInstance(sampled[0], Data)
-    self.assertEqual(sampled[0], Data('1.png', [BBox('1', 77, 246, 81, 219), BBox('9', 81, 323, 96, 219)]))
-    self.assertEqual(sampled[20], Data('21.png', [BBox(label=2, top=6.0, left=72.0, width=52.0, height=85.0)]))

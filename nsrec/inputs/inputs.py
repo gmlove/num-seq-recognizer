@@ -128,7 +128,7 @@ def create_pickle_metadata_handler(metadata_file_path, max_number_length, data_d
 
     for i, filename in enumerate(short_filenames):
       filename, length_label, numbers_label = _to_data(filename, labels[i], max_number_length, data_dir_path)
-      length_labels[i,:] = length_label
+      length_labels[i, :] = length_label
       numbers_labels[i, :, :] = numbers_label
       filenames.append(filename)
 
