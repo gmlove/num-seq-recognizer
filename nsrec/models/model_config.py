@@ -62,8 +62,9 @@ class CNNNSRModelConfig(CNNGeneralModelConfig):
     self.data_file_path = os.path.join(current_dir, '../../data/train.raw.tfrecords')
     self.max_number_length = 5
     self.num_classes = self.max_number_length
+    self.num_preprocess_threads = 5
 
-    for attr in ['data_file_path', 'max_number_length']:
+    for attr in ['data_file_path', 'max_number_length', 'num_preprocess_threads']:
       if kwargs.get(attr, None) is None:
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))

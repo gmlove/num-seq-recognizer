@@ -170,7 +170,8 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.label_batches, _ = \
         inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training, channels=self.config.channels)
+                       is_training=self.is_training, channels=self.config.channels,
+                       num_preprocess_threads=self.config.num_preprocess_threads)
 
   def _setup_accuracy(self):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
@@ -215,7 +216,8 @@ class CNNNSRTrainModel(CNNNSRModelBase):
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.length_label_batches, numbers_label_batches = \
         inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training, channels=self.config.channels)
+                       is_training=self.is_training, channels=self.config.channels,
+                       num_preprocess_threads=self.config.num_preprocess_threads)
       for i in range(self.max_number_length):
         self.numbers_label_batches.append(numbers_label_batches[:, i, :])
 
@@ -497,21 +499,24 @@ def create_model(FLAGS, mode='train'):
   if key not in model_clz:
     raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
 
+  params_dict = {
+    'batch_size': FLAGS.batch_size,
+    'net_type': FLAGS.net_type,
+    'gray_scale': FLAGS.gray_scale
+  }
+
   if FLAGS.cnn_model_type in ['length', 'all', 'bbox']:
+    params_dict.update({'max_number_length': FLAGS.max_number_length})
     if mode in ['train', 'eval']:
-      config = CNNNSRModelConfig(data_file_path=FLAGS.data_file_path,
-                                 batch_size=FLAGS.batch_size,
-                                 net_type=FLAGS.net_type,
-                                 max_number_length=FLAGS.max_number_length,
-                                 gray_scale=FLAGS.gray_scale)
+      params_dict.update({
+        'num_preprocess_threads': FLAGS.num_preprocess_threads,
+        'data_file_path': FLAGS.data_file_path
+      })
+      config = CNNNSRModelConfig(**params_dict)
     else:
-      config = CNNNSRInferModelConfig(net_type=FLAGS.net_type,
-                                      max_number_length=FLAGS.max_number_length,
-                                      gray_scale=FLAGS.gray_scale)
+      config = CNNNSRInferModelConfig(**params_dict)
   else:
-    config = CNNGeneralModelConfig(batch_size=FLAGS.batch_size,
-                                   net_type=FLAGS.net_type,
-                                   num_classes=10,
-                                   gray_scale=FLAGS.gray_scale)
+    params_dict.update({'num_classes': 10})
+    config = CNNGeneralModelConfig(**params_dict)
 
   return model_clz[key](config)

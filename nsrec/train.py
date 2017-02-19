@@ -21,7 +21,7 @@ tf.flags.DEFINE_float("learning_rate", 0.05, "Learning rate")
 tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 tf.flags.DEFINE_string("train_dir", os.path.join(current_dir, '../output/train'), "Train output directory.")
-
+tf.flags.DEFINE_integer("num_preprocess_threads", 5, "Number of pre-processor threads")
 
 def learning_rate_fn(batch_size):
   num_epochs_per_decay = 8.0
