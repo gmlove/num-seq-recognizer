@@ -137,14 +137,15 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
 
 
 def fix_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
-  top = max([bbox[1] - h * expand_rate, 0])
-  bottom = min([bbox[1] + bbox[3] + h * expand_rate, h])
-  left = max([bbox[0] - w * expand_rate, 0])
-  right = min([bbox[0] + bbox[2] + w * expand_rate, w])
+  top = max([round(bbox[1] - h * expand_rate), 0])
+  bottom = min([round(bbox[1] + bbox[3] + h * expand_rate), h])
+  left = max([round(bbox[0] - w * expand_rate), 0])
+  right = min([round(bbox[0] + bbox[2] + w * expand_rate), w])
   if bottom - top < accept_min_rate * h:
     top, bottom = 0, h
   if right - left < accept_min_rate * w:
     left, right = 0, w
+  print(top, bottom, left, right)
   return image[top:bottom, left:right, :]
 
 
