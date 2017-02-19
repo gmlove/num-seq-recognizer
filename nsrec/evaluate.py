@@ -16,13 +16,8 @@ from models.cnn_model import create_model
 FLAGS = tf.flags.FLAGS
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-default_metadata_file_path = os.path.join(current_dir, '../data/test/metadata.pickle')
-tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path,
-                       "Meta data file path.")
-default_data_dir_path = os.path.join(current_dir, '../data/test/')
-tf.flags.DEFINE_string("data_dir_path", default_data_dir_path,
-                       "Meta data directory path.")
-
+default_data_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train.raw.tfrecords')
+tf.flags.DEFINE_string("data_file_path", default_data_file_path, "Data file path.")
 
 default_eval_dir = os.path.join(current_dir, '../output/eval')
 tf.flags.DEFINE_string("eval_dir", default_eval_dir, "Directory to write event logs.")
@@ -36,6 +31,7 @@ tf.flags.DEFINE_integer("min_global_step", 500,
                         "Minimum global step to run evaluation.")
 
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
+
 
 def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   """
@@ -78,6 +74,7 @@ def evaluate_model(sess, model, global_step, summary_writer, summary_op):
   summary_writer.flush()
   tf.logging.info("Finished processing evaluation at global step %d.",
                   global_step)
+
 
 def run_once(model, saver, summary_writer, summary_op):
   """Evaluates the latest model checkpoint.

@@ -26,8 +26,8 @@ class CNNModelTest(tf.test.TestCase):
     self._run_test(CNNBBoxTrainModel)
 
   def _run_test(self, model_cls=CNNNSRTrainModel):
-    metadata_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
+    data_file_path = test_helper.get_test_metadata()
+    config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2)
 
     with self.test_session():
       model = model_cls(config)
@@ -40,8 +40,8 @@ class CNNModelTest(tf.test.TestCase):
         train_op, None, number_of_steps=2)
 
   def test_evaluation_correct_count(self):
-    metadata_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
+    data_file_path = test_helper.get_test_metadata()
+    config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2)
 
     with self.test_session() as sess:
       model = CNNNSREvalModel(config)

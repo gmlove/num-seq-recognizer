@@ -7,12 +7,8 @@ from nsrec.utils.debug import inspect_tensors
 FLAGS = tf.flags.FLAGS
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-default_metadata_file_path = os.path.join(current_dir, '../data/test/metadata.pickle')
-tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path,
-                       "Meta data file path.")
-default_data_dir_path = os.path.join(current_dir, '../data/test/')
-tf.flags.DEFINE_string("data_dir_path", default_data_dir_path,
-                       "Meta data directory path.")
+default_data_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train.raw.tfrecords')
+tf.flags.DEFINE_string("data_file_path", default_data_file_path, "Data file path.")
 
 tf.flags.DEFINE_string("cnn_model_type", "all", "Model type. all: approximate all numbers; length: only approximate length")
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")

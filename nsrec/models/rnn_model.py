@@ -17,7 +17,7 @@ class RNNTrainModel(cnn_model.CNNNSRTrainModel):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, _, numbers_label_batches = \
-        inputs.batches(config.metadata_file_path, config.max_number_length, config.batch_size, config.size,
+        inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training, channels=config.channels)
       self.numbers_label_batches = tf.transpose(numbers_label_batches, perm=[1, 0, 2])
 

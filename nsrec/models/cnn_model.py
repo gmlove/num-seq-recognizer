@@ -98,7 +98,7 @@ class CNNBBoxTrainModel(CNNGeneralModelBase):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.label_batches = \
-        inputs.bbox_batches(config.metadata_file_path, config.batch_size, config.size,
+        inputs.bbox_batches(config.data_file_path, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
 
   def _setup_loss(self):
@@ -169,7 +169,7 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.label_batches, _ = \
-        inputs.batches(config.metadata_file_path, config.max_number_length, config.batch_size, config.size,
+        inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
 
   def _setup_accuracy(self):
@@ -214,7 +214,7 @@ class CNNNSRTrainModel(CNNNSRModelBase):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.length_label_batches, numbers_label_batches = \
-        inputs.batches(config.metadata_file_path, config.max_number_length, config.batch_size, config.size,
+        inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
                        is_training=self.is_training, channels=self.config.channels)
       for i in range(self.max_number_length):
         self.numbers_label_batches.append(numbers_label_batches[:, i, :])
@@ -499,8 +499,7 @@ def create_model(FLAGS, mode='train'):
 
   if FLAGS.cnn_model_type in ['length', 'all', 'bbox']:
     if mode in ['train', 'eval']:
-      config = CNNNSRModelConfig(metadata_file_path=FLAGS.metadata_file_path,
-                                 data_dir_path=FLAGS.data_dir_path,
+      config = CNNNSRModelConfig(data_file_path=FLAGS.data_file_path,
                                  batch_size=FLAGS.batch_size,
                                  net_type=FLAGS.net_type,
                                  max_number_length=FLAGS.max_number_length,

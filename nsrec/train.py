@@ -10,8 +10,8 @@ tf.flags.DEFINE_integer("log_every_n_steps", 1,
 tf.flags.DEFINE_integer("number_of_steps", 5000, "Number of training steps.")
 tf.flags.DEFINE_integer("batch_size", 32, "Batch size.")
 
-default_metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train/metadata.pickle')
-tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Meta data file path.")
+default_data_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train.raw.tfrecords')
+tf.flags.DEFINE_string("data_file_path", default_data_file_path, "Data file path.")
 
 tf.flags.DEFINE_integer("save_summaries_secs", 5, "Save summaries per secs.")
 tf.flags.DEFINE_integer("save_interval_secs", 180, "Save model per secs.")
@@ -19,7 +19,6 @@ tf.flags.DEFINE_integer("save_interval_secs", 180, "Save model per secs.")
 tf.flags.DEFINE_string("optimizer", "SGD", "Optimizer: SGD")
 tf.flags.DEFINE_float("learning_rate", 0.05, "Learning rate")
 tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
-tf.flags.DEFINE_string("data_dir_path", None, "Train data path")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 tf.flags.DEFINE_string("train_dir", os.path.join(current_dir, '../output/train'), "Train output directory.")
 

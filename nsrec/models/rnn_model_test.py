@@ -7,8 +7,8 @@ from nsrec.models.rnn_model import RNNTrainModel
 class RNNModelTest(tf.test.TestCase):
 
   def test_train_rnn(self):
-    metadata_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2)
+    data_file_path = test_helper.get_test_metadata()
+    config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2)
 
     with self.test_session():
       model = RNNTrainModel(config)
