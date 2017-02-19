@@ -98,41 +98,6 @@ def resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=1):
   return dequeued_img
 
 
-def create_mat_metadata_handler(metadata_file_path, max_number_length, data_dir_path):
-
-  def handler():
-    filenames, bboxes, length_labels, numbers_labels = [], [], [], []
-    metadata = metadata_generator(metadata_file_path)
-
-    read_count = 0
-    for data in metadata:
-      read_count += 1
-      if len(data.label) > max_number_length:
-        tf.logging.info('ignore data since label is too long: filename=%s, label=%s' % (data.filename, data.label))
-        continue
-
-      filename, length_label, numbers_label = _to_data(data.filename, data.label, max_number_length, data_dir_path)
-      filenames.append(filename)
-      length_labels.append(length_label)
-      numbers_labels.append(numbers_label)
-      bboxes.append(data.bbox())
-
-      if read_count % 1000 == 0:
-        tf.logging.info('readed %s records', read_count)
-
-    length_labels_nd = np.ndarray((len(filenames), max_number_length))
-    numbers_labels_nd = np.ndarray((len(filenames), max_number_length, 11))
-
-    for i, length_label in enumerate(length_labels):
-      length_labels_nd[i, :] = length_label
-      numbers_labels_nd[i, :, :] = numbers_labels[i]
-
-    return filenames, bboxes, length_labels_nd, numbers_labels_nd
-
-
-  return handler
-
-
 def _to_data(filename, label, max_number_length, data_dir_path):
   # fix label if longer than max_number_length
   label = label[:max_number_length]

@@ -18,25 +18,20 @@ class CNNModelTest(tf.test.TestCase):
       tf.contrib.slim.learning.train(
         train_op, None, number_of_steps=2)
 
-  def test_train_model_with_pickle_metadata(self):
-    self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler)
+  def test_train_model(self):
+    self._run_test()
 
-  def test_train_length_model_with_pickle_metadata(self):
-    self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler,
-                  CNNLengthTrainModel)
+  def test_train_length_model(self):
+    self._run_test(CNNLengthTrainModel)
 
-  def test_train_bbox_model_with_pickle_metadata(self):
-    self.run_test(DataReaderTest.createTestPickleMetadata, inputs.create_pickle_metadata_handler,
-                  CNNBBoxTrainModel)
+  def test_train_bbox_model(self):
+    self._run_test(CNNBBoxTrainModel)
 
-  def test_train_model_with_mat_metadata(self):
-    self.run_test(DataReaderTest.createTestMatMetadata, inputs.create_mat_metadata_handler)
-
-  def run_test(self, create_metadata_fn, create_metadata_handler_fn, model_cls=CNNNSRTrainModel):
+  def _run_test(self, model_cls=CNNNSRTrainModel):
     metadata_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data')
-    metadata_file_path = create_metadata_fn(25, metadata_dir_path)
+    metadata_file_path = DataReaderTest.createTestPickleMetadata(25, metadata_dir_path)
     config = CNNNSRModelConfig(metadata_file_path=metadata_file_path, batch_size=2,
-                               create_metadata_handler_fn=create_metadata_handler_fn)
+                               create_metadata_handler_fn=inputs.create_pickle_metadata_handler)
 
     with self.test_session():
       model = model_cls(config)
