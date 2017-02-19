@@ -10,8 +10,8 @@ from nsrec.inputs import metadata_generator
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.flags.DEFINE_string("mat_metadata_file_path", "",
-                       "Mat format metadata file path, use ',' to separate multiple files.")
+tf.flags.DEFINE_string("metadata_file_path", "",
+                       "Metadata file path, use ',' to separate multiple files, suffix must be `pickle` or `mat`.")
 tf.flags.DEFINE_string("data_dir_path", "",
                        "Data file path, use ',' to separate multiple paths, should be in the same order as mat_metadata_file_path.")
 tf.flags.DEFINE_string("final_data_dir_path", "",
@@ -22,20 +22,20 @@ tf.flags.DEFINE_bool("rand_bbox_count", 5, "How many rand bbox to generate.")
 
 
 def main(args, **kwargs):
-  assert FLAGS.mat_metadata_file_path, "Mat format metadata file path required"
+  assert FLAGS.metadata_file_path, "Metadata file path required"
   assert FLAGS.output_file_path, "Output file path required"
   assert FLAGS.data_dir_path, "Data dir path required"
 
-  mat_metadata_file_paths = FLAGS.mat_metadata_file_path.split(',')
+  metadata_file_paths = FLAGS.metadata_file_path.split(',')
   data_dir_paths = FLAGS.data_dir_path.split(',')
-  assert len(mat_metadata_file_paths) == len(data_dir_paths)
+  assert len(metadata_file_paths) == len(data_dir_paths)
 
   final_filenames, final_labels, final_bboxes = [], [], []
 
-  for i in range(len(mat_metadata_file_paths)):
-    mat_metadata_file_path, data_dir_path = mat_metadata_file_paths[i], data_dir_paths[i]
-    filenames, labels, bboxes = parse_data(mat_metadata_file_path, FLAGS.max_number_length,
-                                           data_dir_path, FLAGS.rand_bbox_count)
+  for i in range(len(metadata_file_paths)):
+    metadata_file_path, data_dir_path = metadata_file_paths[i], data_dir_paths[i]
+    filenames, labels, bboxes = _read_meta_data(
+      data_dir_path, metadata_file_path, FLAGS.max_number_length, FLAGS.rand_bbox_count)
 
     data_dir_path_last_section = data_dir_path.split('/')[-1]
     data_dir_path_last_section = data_dir_path_last_section or data_dir_path.split('/')[-2]
@@ -53,7 +53,17 @@ def main(args, **kwargs):
     raise Exception('output_file_path must end with .pickle or .tfrecords: %s' % output_file_path)
 
 
+def _read_meta_data(data_dir_path, metadata_file_path, max_number_length, rand_bbox_count):
+  if metadata_file_path.endswith('.mat'):
+    return parse_data(metadata_file_path, max_number_length,
+                      data_dir_path, rand_bbox_count)
+  elif metadata_file_path.endswith('.pickle'):
+    metadata = pickle.loads(open(metadata_file_path, 'rb').read())
+    return metadata['filenames'], metadata['labels'], metadata['bboxes']
+
+
 def write_pickle(final_bboxes, final_filenames, final_labels, output_file_path):
+  print('Writing %s records to file %s' % (len(final_filenames), output_file_path))
   pickle.dump({'filenames': final_filenames, 'labels': final_labels, 'bboxes': final_bboxes},
               open(output_file_path, 'wb'))
 
@@ -151,7 +161,7 @@ def _normalize_label(label, max_number_length):
 
 
 def write_tf_records(filenames, labels, max_number_length, bboxes, data_dir_path, output_file_path):
-  print('Writing', output_file_path)
+  print('Writing %s records to file %s' % (len(filenames), output_file_path))
   writer = tf.python_io.TFRecordWriter(output_file_path)
 
   labels_lengths = [min(max_number_length, len(l)) for l in labels]
@@ -169,8 +179,8 @@ def write_tf_records(filenames, labels, max_number_length, bboxes, data_dir_path
 
 '''
 how to test:
-python3 nsrec/data_preprocessor.py --mat_metadata_file_path=./nsrec/test_data/digitStruct.mat \
-  --data_dir_path=./data/train --output_file_path=./nsrec/test_data/metadata-expanded.pickle
+python3 nsrec/data_preprocessor.py --metadata_file_path=./nsrec/test_data/digitStruct.mat,./nsrec/test_data/metadata.pickle \
+  --data_dir_path=./data/train,./data/train --output_file_path=./nsrec/test_data/data.tfrecords
 '''
 
 if __name__ == '__main__':

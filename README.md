@@ -19,30 +19,30 @@ preprocess data:
 ```bash
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/train/digitStruct.mat \
+    --metadata_file_path=./data/train/digitStruct.mat \
     --output_file_path=./data/train/metadata.pickle \
     --data_dir_path=./data/train
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/test/digitStruct.mat \
+    --metadata_file_path=./data/test/digitStruct.mat \
     --data_dir_path=./data/test \
     --output_file_path=./data/test/metadata.pickle \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/extra/digitStruct.mat \
+    --metadata_file_path=./data/extra/digitStruct.mat \
     --data_dir_path=./data/extra \
     --output_file_path=./data/extra/metadata.pickle \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/extra/digitStruct.mat,./data/train/digitStruct.mat \
+    --metadata_file_path=./data/extra/digitStruct.mat,./data/train/digitStruct.mat \
     --data_dir_path=./data/extra,./data/train \
     --output_file_path=./data/extra-train.raw.tfrecords \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --mat_metadata_file_path=./data/test/digitStruct.mat \
+    --metadata_file_path=./data/test/digitStruct.mat \
     --data_dir_path=./data/test \
     --output_file_path=./data/test.raw.tfrecords \
     --rand_bbox_count=0
