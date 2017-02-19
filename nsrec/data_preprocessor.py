@@ -34,24 +34,31 @@ def main(args, **kwargs):
 
   for i in range(len(mat_metadata_file_paths)):
     mat_metadata_file_path, data_dir_path = mat_metadata_file_paths[i], data_dir_paths[i]
-    filenames, labels, bboxes = real_main(mat_metadata_file_path, FLAGS.max_number_length,
-      data_dir_path, FLAGS.rand_bbox_count)
+    filenames, labels, bboxes = parse_data(mat_metadata_file_path, FLAGS.max_number_length,
+                                           data_dir_path, FLAGS.rand_bbox_count)
 
     data_dir_path_last_section = data_dir_path.split('/')[-1]
     data_dir_path_last_section = data_dir_path_last_section or data_dir_path.split('/')[-2]
-    if len(data_dir_paths) == 1:
-      final_filenames.extend(filenames)
-    else:
-      final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
+    final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
     final_bboxes.extend(bboxes)
     final_labels.extend(labels)
 
+  output_file_path = FLAGS.output_file_path
+  if output_file_path.endswith('.pickle'):
+    write_pickle(final_bboxes, final_filenames, final_labels, output_file_path)
+  elif output_file_path.endswith('.tfrecords'):
+    write_tf_records(final_filenames, final_labels, final_bboxes, data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
+  else:
+    raise Exception('output_file_path must end with .pickle or .tfrecords: %s' % output_file_path)
+
+
+def write_pickle(final_bboxes, final_filenames, final_labels, output_file_path):
   pickle.dump({'filenames': final_filenames, 'labels': final_labels, 'bboxes': final_bboxes},
-              open(FLAGS.output_file_path, 'wb'))
+              open(output_file_path, 'wb'))
 
 
-def real_main(mat_metadata_file_path, max_number_length, data_dir_path,
-              rand_box_count=5):
+def parse_data(mat_metadata_file_path, max_number_length, data_dir_path,
+               rand_box_count=5):
   metadata = metadata_generator(mat_metadata_file_path)
   filenames, labels, bboxes = [], [], []
   for i, md in enumerate(metadata):
@@ -125,9 +132,30 @@ def random_bbox(count, bbox, size):
     bboxes.append([rleft, rtop, bbox[2], bbox[3]])
   return bboxes
 
+
+def _int64_feature(values):
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=map(lambda i: int(i), values)))
+
+
+def _bytes_feature(value):
+  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def write_tf_records(filenames, labels, bboxes, data_dir_path, output_file_path):
+  print('Writing', output_file_path)
+  writer = tf.python_io.TFRecordWriter(output_file_path)
+  for index in range(len(filenames)):
+    image_raw = open(os.path.join(data_dir_path, filenames[index]), 'rb').read()
+    example = tf.train.Example(features=tf.train.Features(feature={
+      'label': _int64_feature(labels[index]),
+      'bbox': _int64_feature(bboxes[index]),
+      'image_raw': _bytes_feature(image_raw)}))
+    writer.write(example.SerializeToString())
+  writer.close()
+
 '''
 how to test:
-python nsrec/data_preprocessor.py --mat_metadata_file_path= ./nsrec/test_data/digitStruct.mat \
+python3 nsrec/data_preprocessor.py --mat_metadata_file_path=./nsrec/test_data/digitStruct.mat \
   --data_dir_path=./data/train --output_file_path=./nsrec/test_data/metadata-expanded.pickle
 '''
 
