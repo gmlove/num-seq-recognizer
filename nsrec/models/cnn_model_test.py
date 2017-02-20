@@ -85,8 +85,7 @@ class CNNModelTest(tf.test.TestCase):
 
     with self.test_session() as sess:
       model = CNNNSRToExportModel(config)
-      model.init(model_vars)
-      model.build()
+      model.build(model_vars)
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, 64, 64, 3))})
       print(pbs)

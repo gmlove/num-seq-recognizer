@@ -46,14 +46,7 @@ class CNNGeneralModelBase:
     pass
 
   def _setup_global_step(self):
-    """Sets up the global step Tensor."""
-    global_step = tf.Variable(
-      initial_value=0,
-      name="global_step",
-      trainable=False,
-      collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
-
-    self.global_step = global_step
+    self.global_step = global_step_variable()
 
   def build(self):
     tf.logging.info('using config: %s', self.config)
@@ -62,6 +55,11 @@ class CNNGeneralModelBase:
     self._setup_loss()
     self._setup_accuracy()
     self._setup_global_step()
+
+
+def global_step_variable():
+  return tf.Variable(initial_value=0, name="global_step", trainable=False,
+                     collections=[tf.GraphKeys.GLOBAL_STEP, tf.GraphKeys.GLOBAL_VARIABLES])
 
 
 class CNNMnistTrainModel(CNNGeneralModelBase):
@@ -141,7 +139,7 @@ class CNNBBoxInferModel(CNNBBoxTrainModel):
     return result
 
   def vars(self, sess):
-    return inference_vars(sess)
+    return all_model_variables_data(sess)
 
 
 def softmax_accuracy(logits, label_batches, scope_name):
@@ -177,49 +175,76 @@ class CNNLengthTrainModel(CNNGeneralModelBase):
     self.train_accuracy = softmax_accuracy(self.model_output, self.label_batches, 'accuracy/train')
 
 
-class CNNNSRModelBase(CNNGeneralModelBase):
+def nsr_net(cnn_net, data_batches, max_number_length, is_training):
+  with cnn_net.variable_scope([data_batches]) as variable_scope:
+    end_points_collection_name = cnn_net.end_points_collection_name(variable_scope)
+    net, end_points_collection = cnn_net.cnn_layers(data_batches, variable_scope, end_points_collection_name)
+    length_output, _ = cnn_net.fc_layers(
+      net, variable_scope, end_points_collection, dropout_keep_prob=0.9,
+      num_classes=max_number_length, is_training=is_training, name_prefix='length')
+    numbers_output = []
+    for i in range(max_number_length):
+      number_output, _ = cnn_net.fc_layers(
+        net, variable_scope, end_points_collection, dropout_keep_prob=0.9,
+        is_training=is_training, num_classes=11, name_prefix='number%s' % (i + 1))
+      numbers_output.append(number_output)
+  return length_output, numbers_output
+
+
+def nsr_data_batches(batch_size, data_file_path, max_number_length, size, is_training, channels, num_preprocess_threads):
+  with ops.name_scope(None, 'Input') as sc:
+    data_batches, length_label_batches, combined_numbers_label_batches = \
+      inputs.batches(data_file_path, max_number_length, batch_size, size,
+                     is_training=is_training, channels=channels,
+                     num_preprocess_threads=num_preprocess_threads)
+    numbers_label_batches = []
+    for i in range(max_number_length):
+      numbers_label_batches.append(combined_numbers_label_batches[:, i, :])
+    return data_batches, length_label_batches, numbers_label_batches
+
+
+class CNNNSRModelBase:
 
   def __init__(self, config):
-    super(CNNNSRModelBase, self).__init__(config)
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.is_training = True
     self.length_output = None
     self.numbers_output = None
-    self.max_number_length = self.config.max_number_length
+    self.max_number_length = config.max_number_length
 
   def _setup_net(self):
-    with self.cnn_net.variable_scope([self.data_batches]) as variable_scope:
-      end_points_collection_name = self.cnn_net.end_points_collection_name(variable_scope)
-      net, end_points_collection = self.cnn_net.cnn_layers(self.data_batches, variable_scope, end_points_collection_name)
-      self.length_output, _ = self.cnn_net.fc_layers(
-        net, variable_scope, end_points_collection, dropout_keep_prob=0.9,
-        num_classes=self.config.max_number_length, is_training=self.is_training, name_prefix='length')
-      self.numbers_output = []
-      for i in range(self.config.max_number_length):
-        number_output, _ = self.cnn_net.fc_layers(
-          net, variable_scope, end_points_collection, dropout_keep_prob=0.9,
-          is_training=self.is_training, num_classes=11, name_prefix='number%s' % (i + 1))
-        self.numbers_output.append(number_output)
+    self.length_output, self.numbers_output = nsr_net(
+      self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
 
 
-class CNNNSRTrainModel(CNNNSRModelBase):
+class CNNNSRTrainModel:
 
   def __init__(self, config):
-    super(CNNNSRTrainModel, self).__init__(config)
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.is_training = True
+    self.max_number_length = self.config.max_number_length
+    self.batch_size = config.batch_size
 
     self.total_loss = None
     self.global_step = None
-    self.batch_size = config.batch_size
-    self.train_accuracy = None
+    self.length_output = None
+    self.numbers_output = None
+
+    self.data_batches = None
+    self.length_label_batches = None
     self.numbers_label_batches = []
 
   def _setup_input(self):
     config = self.config
-    with ops.name_scope(None, 'Input') as sc:
-      self.data_batches, self.length_label_batches, numbers_label_batches = \
-        inputs.batches(config.data_file_path, config.max_number_length, config.batch_size, config.size,
-                       is_training=self.is_training, channels=self.config.channels,
-                       num_preprocess_threads=self.config.num_preprocess_threads)
-      for i in range(self.max_number_length):
-        self.numbers_label_batches.append(numbers_label_batches[:, i, :])
+    self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+        nsr_data_batches(config.batch_size, config.data_file_path, config.max_number_length, config.size,
+                         self.is_training, self.config.channels, self.config.num_preprocess_threads)
+
+  def _setup_net(self):
+    self.length_output, self.numbers_output = nsr_net(
+      self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
 
   def _setup_loss(self):
     number_losses = []
@@ -250,21 +275,57 @@ class CNNNSRTrainModel(CNNNSRModelBase):
     for i in range(self.max_number_length):
       softmax_accuracy(self.numbers_output[i], self.numbers_label_batches[i], 'accuracy/train/number%s' % (i + 1))
 
+  def _setup_global_step(self):
+    self.global_step = global_step_variable()
 
-class CNNNSREvalModel(CNNNSRTrainModel):
+  def build(self):
+    self._setup_input()
+    self._setup_net()
+    self._setup_loss()
+    self._setup_accuracy()
+    self._setup_global_step()
+
+
+class CNNNSREvalModel:
 
   def __init__(self, config):
-    super(CNNNSREvalModel, self).__init__(config)
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.max_number_length = self.config.max_number_length
+    self.batch_size = config.batch_size
     self.is_training = False
 
-  def _setup_accuracy(self, op_name='accuracy/eval'):
+    self.length_output = None
+    self.numbers_output = None
+
+    self.data_batches = None
+    self.length_label_batches = None
+    self.numbers_label_batches = []
+
+    self.length_label_batches_pd = None
+    self.numbers_label_batches_pd = None
+
+  def _setup_input(self):
+    config = self.config
+    self.data_batches, self.length_label_batches, self.numbers_label_batches = \
+        nsr_data_batches(config.batch_size, config.data_file_path, config.max_number_length, config.size,
+                         self.is_training, self.config.channels, self.config.num_preprocess_threads)
+
+  def _setup_net(self):
+    self.length_output, self.numbers_output = nsr_net(
+      self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
     self.length_label_batches_pd = tf.nn.softmax(self.length_output)
     self.numbers_label_batches_pd = [None] * self.max_number_length
     for i in range(self.max_number_length):
       self.numbers_label_batches_pd[i] = tf.nn.softmax(self.numbers_output[i])
 
-  def _setup_loss(self):
-    pass
+  def _setup_global_step(self):
+    self.global_step = global_step_variable()
+
+  def build(self):
+    self._setup_input()
+    self._setup_net()
+    self._setup_global_step()
 
   def correct_count(self, sess):
     calculated_values = sess.run({
@@ -273,10 +334,9 @@ class CNNNSREvalModel(CNNNSRTrainModel):
       'length_label_batches_pd': self.length_label_batches_pd,
       'numbers_label_batches_pd': self.numbers_label_batches_pd
     })
-    length_label_batches, numbers_label_batches, \
-    length_label_batches_pd, numbers_label_batches_pd = \
-      calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
-      calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
+    length_label_batches, numbers_label_batches, length_label_batches_pd, numbers_label_batches_pd = \
+        calculated_values['length_label_batches'], calculated_values['numbers_label_batches'], \
+        calculated_values['length_label_batches_pd'], calculated_values['numbers_label_batches_pd']
 
     return correct_count(length_label_batches, numbers_label_batches,
                          length_label_batches_pd, numbers_label_batches_pd)
@@ -290,34 +350,43 @@ def gray_scale(inputs):
   return data_batches
 
 
-def inference_vars(sess):
+def all_model_variables_data(sess):
   coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
   model_vars = sess.run(coll)
   model_vars_dict = dict(zip([v.name for v in coll], model_vars))
   return model_vars_dict
 
 
-class CNNNSRInferenceModel(CNNNSRModelBase):
+class CNNNSRInferenceModel:
 
   def __init__(self, config):
-    super(CNNNSRInferenceModel, self).__init__(config)
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.max_number_length = config.max_number_length
+    self.is_training = False
+
+    self.inputs = None
+    self.data_batches = None
+
     self.length_pb = None
     self.numbers_pb = []
-    self.is_training = False
-    self.inputs = None
 
-  def _setup_input(self, inputs=None):
-    self.inputs = inputs or tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.global_step = None
+
+  def _setup_input(self):
+    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
-  def _setup_loss(self):
-    pass
-
   def _setup_net(self):
-    super(CNNNSRInferenceModel, self)._setup_net()
+    self.length_output, self.numbers_output = nsr_net(
+      self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
     self.length_pb = tf.nn.softmax(self.length_output)
     for i in range(self.max_number_length):
       self.numbers_pb.append(tf.nn.softmax(self.numbers_output[i]))
+
+  def build(self):
+    self._setup_input()
+    self._setup_net()
 
   def infer(self, sess, data):
     input_data = [inputs.normalize_img(image, self.config.size) for image in data]
@@ -339,7 +408,7 @@ class CNNNSRInferenceModel(CNNNSRModelBase):
     return labels
 
   def vars(self, sess):
-    return inference_vars(sess)
+    return all_model_variables_data(sess)
 
 
 def vars_assign_ops(vars_dict, saved_vars_dict, prefix=''):
@@ -349,7 +418,7 @@ def vars_assign_ops(vars_dict, saved_vars_dict, prefix=''):
   return assign_ops
 
 
-def stacked_output_ops(max_number_length, length_output, numbers_output, name='output'):
+def stack_output_ops(max_number_length, length_output, numbers_output, name='output'):
   length_pb = tf.nn.softmax(length_output)
   to_concat = [tf.reshape(length_pb, (max_number_length, ))]
   for i in range(max_number_length):
@@ -357,27 +426,40 @@ def stacked_output_ops(max_number_length, length_output, numbers_output, name='o
   return tf.concat(axis=0, values=to_concat, name=name)
 
 
-class CNNNSRToExportModel(CNNNSRInferenceModel):
+class CNNNSRToExportModel:
 
   def __init__(self, config):
-    super(CNNNSRToExportModel, self).__init__(config)
-    self.saved_vars_dict = None
-    self.output = None
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.max_number_length = config.max_number_length
+    self.is_training = False
 
-  def init(self, saved_vars_dict):
-    self.saved_vars_dict = saved_vars_dict
+    self.inputs = None
+    self.data_batches = None
+
+    self.output = None
+    self.global_step = None
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
     return dict(zip([v.name for v in coll], coll))
 
-  def _setup_net(self):
-    super(CNNNSRToExportModel, self)._setup_net()
+  def _setup_input(self):
+    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
-    assign_ops = vars_assign_ops(self._vars(), self.saved_vars_dict)
+  def _setup_net(self, saved_vars_dict):
+    self.length_output, self.numbers_output = nsr_net(
+      self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
+
+    assign_ops = vars_assign_ops(self._vars(), saved_vars_dict)
     with tf.control_dependencies(assign_ops):
-      self.output = stacked_output_ops(
+      self.output = stack_output_ops(
         self.max_number_length, self.length_output, self.numbers_output, name='output')
+
+  def build(self, saved_vars_dict):
+    self._setup_input()
+    self._setup_net(saved_vars_dict)
 
 
 class CNNBboxToExportModel(CNNBBoxInferModel):
@@ -460,7 +542,7 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
     assign_ops = vars_assign_ops(vars_dict, self.bbox_vars_dict, 'bbox')
     assign_ops.extend(vars_assign_ops(vars_dict, self.vars_dict, 'nsr'))
     with tf.control_dependencies(assign_ops):
-      self.output = stacked_output_ops(self.max_number_length, self.length_output, self.numbers_output)
+      self.output = stack_output_ops(self.max_number_length, self.length_output, self.numbers_output)
 
   def _setup_global_step(self):
     pass

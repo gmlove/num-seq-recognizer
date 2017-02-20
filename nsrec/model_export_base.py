@@ -30,8 +30,7 @@ def export(FLAGS):
   g = tf.Graph()
   with g.as_default(), tf.device('/cpu:0'):
     model = create_model(FLAGS, 'to_export')
-    model.init(model_vars)
-    model.build()
+    model.build(model_vars)
 
   with tf.Session(graph=g) as sess:
     log_dir = './output/export'
