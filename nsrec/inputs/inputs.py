@@ -152,7 +152,7 @@ def crop_to_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
 def read_img(img_file, bbox):
   image = ndimage.imread(img_file)
   if bbox:
-    image = crop_to_bbox(image, image.shape[1], image.shape[0], bbox)
+    image = crop_to_bbox(image, image.shape[1], image.shape[0], bbox, 0, 0)
   return image
 
 pixel_depth = 255.0
@@ -160,7 +160,7 @@ pixel_depth = 255.0
 
 def normalize_img(image, size):
   image = misc.imresize(image, size).astype(np.float32)
-  image = (image- pixel_depth / 2) / pixel_depth
+  image = (image - pixel_depth / 2) / pixel_depth
   assert image.shape == (size[0], size[1], 3)
   return image
 
