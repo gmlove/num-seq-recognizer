@@ -57,4 +57,7 @@ def inference(label_fn, bboxes=False, FLAGS=None):
     labels = model.infer(sess, data)
     for i in range(len(files)):
       tf.logging.info('infered image %s[%s]: %s', files[i], should_be_labels[i], labels[i])
+    correct_inferences = filter(lambda i: should_be_labels[i] == labels[i][0], range(len(files)))
+    correct_count = len(list(correct_inferences))
+    tf.logging.info('correct count: %s, rate: %.4f', correct_count, correct_count / len(files))
     return labels
