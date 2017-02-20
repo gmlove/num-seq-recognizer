@@ -1,3 +1,4 @@
+import numpy as np
 from nsrec import test_helper
 from nsrec.models.cnn_model import *
 

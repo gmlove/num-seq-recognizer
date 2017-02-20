@@ -1,12 +1,14 @@
 import tensorflow as tf
-from nsrec import inputs
-from nsrec.models import cnn_model
-from nsrec.nets import rnn
 from tensorflow.contrib import slim
 from tensorflow.python.framework import ops
 
+from nsrec.models.model_helper import softmax_accuracy
+from nsrec.models.nsr_model import CNNNSRTrainModel
+from nsrec import inputs
+from nsrec.nets import rnn
 
-class RNNTrainModel(cnn_model.CNNNSRTrainModel):
+
+class RNNTrainModel(CNNNSRTrainModel):
 
   def __init__(self, config):
     super(RNNTrainModel, self).__init__(config)
@@ -48,7 +50,7 @@ class RNNTrainModel(cnn_model.CNNNSRTrainModel):
 
   def _setup_accuracy(self, op_name='accuracy/train'):
     numbers_label_batches = tf.reshape(self.numbers_label_batches, [-1, 11])
-    cnn_model.softmax_accuracy(self.model_output, numbers_label_batches, op_name)
+    softmax_accuracy(self.model_output, numbers_label_batches, op_name)
 
 
 class RNNEvalModel(RNNTrainModel):
