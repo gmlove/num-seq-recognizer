@@ -9,8 +9,9 @@ tf.flags.DEFINE_string("output_file_name", "graph-bbox.pb",
 tf.flags.DEFINE_string("bbox_checkpoint_dir", None,
                        "Directory containing model checkpoints.")
 
+
 def main(_):
-  args = ArgumentsObj('bbox').defineArg('cnn_model_type', 'bbox')
+  args = ArgumentsObj('bbox').define_arg('cnn_model_type', 'bbox')
   export(args)
 
 if __name__ == "__main__":

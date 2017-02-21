@@ -8,7 +8,7 @@ from nsrec.models.nsr_model import CNNNSREvalModel, CNNNSRTrainModel, RNNTrainMo
   CNNNSRToExportModel
 
 
-def create_model(FLAGS, mode='train'):
+def create_model(flags, mode='train'):
   assert mode in ['train', 'eval', 'inference', 'to_export']
 
   model_clz = {
@@ -26,26 +26,26 @@ def create_model(FLAGS, mode='train'):
     'all-to_export': CNNNSRToExportModel
   }
 
-  key = '%s-%s' % (FLAGS.cnn_model_type, mode)
-  if FLAGS.rnn:
+  key = '%s-%s' % (flags.cnn_model_type, mode)
+  if flags.rnn:
     key = key + '-rnn'
     tf.logging.info('using rnn')
 
   if key not in model_clz:
-    raise Exception('Unimplemented model: model_type=%s, mode=%s' % (FLAGS.cnn_model_type, mode))
+    raise Exception('Unimplemented model: model_type=%s, mode=%s' % (flags.cnn_model_type, mode))
 
   params_dict = {
-    'net_type': FLAGS.net_type,
-    'gray_scale': FLAGS.gray_scale
+    'net_type': flags.net_type,
+    'gray_scale': flags.gray_scale
   }
 
-  if FLAGS.cnn_model_type in ['length', 'all', 'bbox']:
-    params_dict.update({'max_number_length': FLAGS.max_number_length})
+  if flags.cnn_model_type in ['length', 'all', 'bbox']:
+    params_dict.update({'max_number_length': flags.max_number_length})
     if mode in ['train', 'eval']:
       params_dict.update({
-        'num_preprocess_threads': FLAGS.num_preprocess_threads,
-        'data_file_path': FLAGS.data_file_path,
-        'batch_size': FLAGS.batch_size,
+        'num_preprocess_threads': flags.num_preprocess_threads,
+        'data_file_path': flags.data_file_path,
+        'batch_size': flags.batch_size,
       })
       config = CNNNSRModelConfig(**params_dict)
     else:
@@ -53,7 +53,7 @@ def create_model(FLAGS, mode='train'):
   else:
     params_dict.update({
       'num_classes': 10,
-      'batch_size': FLAGS.batch_size,
+      'batch_size': flags.batch_size,
     })
     config = CNNGeneralModelConfig(**params_dict)
 

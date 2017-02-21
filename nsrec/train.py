@@ -1,7 +1,7 @@
 import os
 
 import tensorflow as tf
-from nsrec.models import create_model
+from models import create_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -22,10 +22,11 @@ tf.flags.DEFINE_integer("max_checkpoints_to_keep", 5, "Max checkpoints to keep")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 tf.flags.DEFINE_string("train_dir", os.path.join(current_dir, '../output/train'), "Train output directory.")
 tf.flags.DEFINE_integer("num_preprocess_threads", 5, "Number of pre-processor threads")
+tf.flags.DEFINE_float("num_epochs_per_decay", 60.0,
+                      "Every how many epochs, or ? * 10k steps, the learning rate will decay.")
 
 
-def learning_rate_fn(batch_size):
-  num_epochs_per_decay = 50.0
+def learning_rate_fn(batch_size, num_epochs_per_decay):
   learning_rate = tf.constant(FLAGS.learning_rate)
   num_batches_per_epoch = (10000 / batch_size)
   decay_steps = int(num_batches_per_epoch * num_epochs_per_decay)
@@ -52,7 +53,7 @@ def main(unused_argv):
     model = create_model(FLAGS)
     model.build()
 
-    learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size)
+    learning_rate, learning_rate_decay_fn = learning_rate_fn(model.config.batch_size, FLAGS.num_epochs_per_decay)
 
     train_op = tf.contrib.layers.optimize_loss(
       loss=model.total_loss,

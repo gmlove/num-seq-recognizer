@@ -13,7 +13,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.flags.DEFINE_string("metadata_file_path", "",
                        "Metadata file path, use ',' to separate multiple files, suffix must be `pickle` or `mat`.")
 tf.flags.DEFINE_string("data_dir_path", "",
-                       "Data file path, use ',' to separate multiple paths, should be in the same order as mat_metadata_file_path.")
+                       "Data file path, use ',' to separate multiple paths, "
+                       "should be in the same order as mat_metadata_file_path.")
 tf.flags.DEFINE_string("final_data_dir_path", "",
                        "Mat format metadata file path.")
 tf.flags.DEFINE_string("output_file_path", "",

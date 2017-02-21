@@ -1,5 +1,5 @@
 import tensorflow as tf
-from models.nsr_bbox_model import CNNBBoxInferModel
+from nsrec.models.nsr_bbox_model import CNNBBoxInferModel
 from nsrec.models.nsr_model import CNNNSRInferenceModel
 from nsrec.utils.ops import assign_vars, gray_scale, stack_output
 from tensorflow.python.framework import ops

@@ -26,7 +26,7 @@ class ArgumentsObj(object):
     self.prefix = prefix
     self.predefined_arguments = {}
 
-  def defineArg(self, name, value):
+  def define_arg(self, name, value):
     self.predefined_arguments[self.prefix + '_' + name] = value
     return self
 

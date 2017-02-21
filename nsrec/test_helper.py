@@ -39,6 +39,7 @@ def _create_test_data():
 
   write_tf_records(filenames, labels, 5, bboxes, train_data_dir_path, test_data_file)
 
+
 def get_mat_test_metadata():
   test_f = h5py.File(test_mat_metadata_file, 'w')
 
