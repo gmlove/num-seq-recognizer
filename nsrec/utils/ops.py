@@ -9,7 +9,7 @@ def all_model_variables_data(sess):
   return model_vars_dict
 
 
-def vars_assign_ops(vars_dict, saved_vars_dict, prefix=''):
+def assign_vars(vars_dict, saved_vars_dict, prefix=''):
   assign_ops = []
   for name, input_var in saved_vars_dict.items():
     assign_ops.append(tf.assign(vars_dict[prefix + name], input_var))
@@ -41,7 +41,7 @@ def gray_scale(inputs):
   return data_batches
 
 
-def stack_output_ops(max_number_length, length_output, numbers_output, name='output'):
+def stack_output(max_number_length, length_output, numbers_output, name='output'):
   length_pb = tf.nn.softmax(length_output)
   to_concat = [tf.reshape(length_pb, (max_number_length, ))]
   for i in range(max_number_length):

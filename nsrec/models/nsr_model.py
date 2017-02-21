@@ -3,14 +3,13 @@ from functools import reduce
 import numpy as np
 
 import tensorflow as tf
-from tensorflow.contrib import slim
-from tensorflow.python.framework import ops
-
 from nsrec import inputs
 from nsrec.nets import rnn
-from nsrec.models.model_helper import all_model_variables_data, vars_assign_ops, softmax_accuracy, global_step_variable, \
-  gray_scale, stack_output_ops
 from nsrec.utils.np_ops import correct_count
+from tensorflow.contrib import slim
+from tensorflow.python.framework import ops
+from utils.ops import all_model_variables_data, assign_vars, softmax_accuracy, global_step_variable, \
+  gray_scale, stack_output
 
 
 class CNNNSRTrainModel:
@@ -217,9 +216,9 @@ class CNNNSRToExportModel:
     self.length_output, self.numbers_output = nsr_net(
       self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
 
-    assign_ops = vars_assign_ops(self._vars(), saved_vars_dict)
+    assign_ops = assign_vars(self._vars(), saved_vars_dict)
     with tf.control_dependencies(assign_ops):
-      self.output = stack_output_ops(
+      self.output = stack_output(
         self.max_number_length, self.length_output, self.numbers_output, name='output')
 
   def build(self, saved_vars_dict):

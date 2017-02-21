@@ -1,11 +1,12 @@
 import tensorflow as tf
-from nsrec.models.model_helper import all_model_variables_data, vars_assign_ops, softmax_accuracy, global_step_variable, \
-  gray_scale, stack_output_ops
-from nsrec.models.nsr_model import CNNNSRTrainModel, CNNNSREvalModel, CNNNSRInferenceModel, CNNNSRToExportModel, \
-  RNNTrainModel, RNNEvalModel
+from tensorflow.python.framework import ops
+
 from nsrec import inputs
 from nsrec.models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
-from tensorflow.python.framework import ops
+from nsrec.models.nsr_model import CNNNSRTrainModel, CNNNSREvalModel, CNNNSRInferenceModel, CNNNSRToExportModel, \
+  RNNTrainModel, RNNEvalModel
+from nsrec.utils.ops import all_model_variables_data, assign_vars, softmax_accuracy, global_step_variable, \
+  gray_scale, stack_output
 
 
 class CNNGeneralModelBase:
@@ -174,7 +175,7 @@ class CNNBboxToExportModel(CNNBBoxInferModel):
   def _setup_net(self):
     super(CNNBBoxInferModel, self)._setup_net()
 
-    assign_ops = vars_assign_ops(self._vars(), self.saved_vars_dict)
+    assign_ops = assign_vars(self._vars(), self.saved_vars_dict)
     with tf.control_dependencies(assign_ops):
       self.output = tf.reshape(self.model_output, (-1, ), 'output-bbox')
 
@@ -234,10 +235,10 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
         self.infer_model._setup_net()
 
     vars_dict = self._vars()
-    assign_ops = vars_assign_ops(vars_dict, self.bbox_vars_dict, 'bbox')
-    assign_ops.extend(vars_assign_ops(vars_dict, self.vars_dict, 'nsr'))
+    assign_ops = assign_vars(vars_dict, self.bbox_vars_dict, 'bbox')
+    assign_ops.extend(assign_vars(vars_dict, self.vars_dict, 'nsr'))
     with tf.control_dependencies(assign_ops):
-      self.output = stack_output_ops(self.max_number_length, self.length_output, self.numbers_output)
+      self.output = stack_output(self.max_number_length, self.length_output, self.numbers_output)
 
   def _setup_global_step(self):
     pass
