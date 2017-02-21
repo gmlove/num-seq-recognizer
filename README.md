@@ -13,9 +13,7 @@ tar xzvf train.tar.gz test.tar.gz extra.tar.gz
 ```
 
 
-### Preprocessor
-
-preprocess data:
+### pre-process
 
 ```bash
 
