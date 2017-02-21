@@ -1,16 +1,17 @@
 
-Data from: http://ufldl.stanford.edu/housenumbers/
+Train a tensorflow model against SVHN dataset, details of which can be found here: http://ufldl.stanford.edu/housenumbers/.
 
-http://ufldl.stanford.edu/housenumbers/train_32x32.mat
-http://ufldl.stanford.edu/housenumbers/test_32x32.mat
-http://ufldl.stanford.edu/housenumbers/extra_32x32.mat
+### Download and extract data
 
-### Steps
+```bash
+mkdir data
+cd data
+wget http://ufldl.stanford.edu/housenumbers/train.tar.gz \
+    http://ufldl.stanford.edu/housenumbers/test.tar.gz \
+    http://ufldl.stanford.edu/housenumbers/extra.tar.gz
+tar xzvf train.tar.gz test.tar.gz extra.tar.gz
+```
 
-1. read data
-2. BatchGenerator
-3. model
-4. evaluate
 
 ### Preprocessor
 
@@ -55,4 +56,25 @@ python3 nsrec/data_preprocessor.py \
 python3 nsrec/train.py \
     --data_file_path=./data/extra-train.raw.tfrecords \
     --log_every_n_steps=50
+```
+
+### infer:
+
+```bash
+python3 nsrec/inference.py --net_type=lenet_v2 --input_files=1.png,2.png,3.png,4.png,5.png
+    --checkpoint_dir=./output/train \
+    --metadata_file_path=./data/train/metadata.pickle \
+    --data_dir_path=./data/train
+```
+
+### evaluate against test dataset:
+
+```bash
+python3 nsrec/evaluate.py --net_type=lenet_v2 --data_file_path=./data/test.raw.tfrecords
+```
+
+### export model to be used in Android application
+
+```bash
+python3 nsrec/model_export.py --net_type=lenet_v2
 ```

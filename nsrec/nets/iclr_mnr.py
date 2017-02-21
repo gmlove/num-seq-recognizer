@@ -11,6 +11,7 @@ variable_scope = variable_scope_fn(default_scope_name)
 best accuracy: 89.5%, data size: 158M
 '''
 
+
 def cnn_layers(inputs, scope, end_points_collection, dropout_keep_prob=0.8, is_training=True):
   with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                       outputs_collections=[end_points_collection]):
