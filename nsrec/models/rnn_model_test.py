@@ -1,7 +1,7 @@
 import tensorflow as tf
 from nsrec import test_helper
 from nsrec.models.cnn_model import CNNNSRModelConfig
-from nsrec.models.rnn_model import RNNTrainModel
+from nsrec.models.nsr_model import RNNTrainModel
 
 
 class RNNModelTest(tf.test.TestCase):

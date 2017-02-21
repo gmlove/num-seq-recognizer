@@ -1,7 +1,8 @@
 import tensorflow as tf
 from nsrec.models.model_helper import all_model_variables_data, vars_assign_ops, softmax_accuracy, global_step_variable, \
   gray_scale, stack_output_ops
-from nsrec.models.nsr_model import CNNNSRTrainModel, CNNNSREvalModel, CNNNSRInferenceModel, CNNNSRToExportModel
+from nsrec.models.nsr_model import CNNNSRTrainModel, CNNNSREvalModel, CNNNSRInferenceModel, CNNNSRToExportModel, \
+  RNNTrainModel, RNNEvalModel
 from nsrec import inputs
 from nsrec.models.model_config import CNNNSRModelConfig, CNNNSRInferModelConfig, CNNGeneralModelConfig
 from tensorflow.python.framework import ops
@@ -251,7 +252,6 @@ class CNNCombinedToExportModel(CNNGeneralModelBase):
 def create_model(FLAGS, mode='train'):
   assert mode in ['train', 'eval', 'inference', 'to_export']
 
-  from models.rnn_model import RNNTrainModel, RNNEvalModel
   model_clz = {
     'bbox-train': CNNBBoxTrainModel,
     'bbox-inference': CNNBBoxInferModel,
