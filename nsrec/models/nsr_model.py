@@ -322,5 +322,5 @@ class RNNTrainModel:
     self._setup_global_step()
 
 
-class RNNEvalModel(RNNTrainModel):
+class RNNEvalModel:
   pass
