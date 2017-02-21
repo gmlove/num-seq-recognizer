@@ -34,7 +34,6 @@ class CNNMnistTrainModel:
     self.global_step = global_step_variable()
 
   def build(self):
-    tf.logging.info('using config: %s', self.config)
     self._setup_input()
     self._setup_net()
     self._setup_loss()

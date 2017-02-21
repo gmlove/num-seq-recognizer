@@ -57,4 +57,5 @@ def create_model(flags, mode='train'):
     })
     config = CNNGeneralModelConfig(**params_dict)
 
+  tf.logging.info('using config: %s', config)
   return model_clz[key](config)
