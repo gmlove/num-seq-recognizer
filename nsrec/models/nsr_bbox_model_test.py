@@ -1,23 +1,18 @@
 import numpy as np
 
 from nsrec import test_helper
-from nsrec.models.cnn_model import *
+from models.nsr_bbox_model import *
+from models.model_config import *
 
 
-class CNNModelTest(tf.test.TestCase):
-
-  def test_train_length_model(self):
-    self._run_test(CNNLengthTrainModel)
+class NSRBBOXModelTest(tf.test.TestCase):
 
   def test_train_bbox_model(self):
-    self._run_test(CNNBBoxTrainModel)
-
-  def _run_test(self, model_cls=CNNNSRTrainModel):
     data_file_path = test_helper.get_test_metadata()
     config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2)
 
     with self.test_session():
-      model = model_cls(config)
+      model = CNNBBoxTrainModel(config)
       model.build()
 
       train_op = tf.contrib.layers.optimize_loss(
@@ -45,13 +40,13 @@ class CNNModelTest(tf.test.TestCase):
       model_vars = model.vars(sess)
 
     with self.test_session() as sess:
-      model = CNNBboxToExportModel(config)
+      model = CNNBBoxToExportModel(config)
       model.build(model_vars)
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, config.size[0], config.size[1], 3))})
       print(pbs)
       self.assertEqual(len(pbs), 4)
 
+
 if __name__ == '__main__':
   tf.test.main()
-

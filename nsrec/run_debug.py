@@ -1,7 +1,7 @@
 import os.path
 
 import tensorflow as tf
-from models.cnn_model import create_model
+from nsrec.models import create_model
 from nsrec.utils.debug import inspect_tensors
 
 FLAGS = tf.flags.FLAGS
@@ -41,8 +41,6 @@ def main(unused_args):
 
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=1)
-
-
 
 
 if __name__ == "__main__":

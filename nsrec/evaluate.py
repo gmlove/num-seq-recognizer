@@ -11,7 +11,7 @@ import time
 import math
 
 import tensorflow as tf
-from models.cnn_model import create_model
+from nsrec.models import create_model
 
 FLAGS = tf.flags.FLAGS
 

@@ -1,7 +1,5 @@
-import os
-
 import tensorflow as tf
-from models.cnn_model import create_model
+from models import create_model
 
 
 def export(FLAGS):

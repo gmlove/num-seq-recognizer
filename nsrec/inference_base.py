@@ -3,8 +3,8 @@ import os
 from six.moves import cPickle as pickle
 
 import tensorflow as tf
-from models.cnn_model import create_model
-from nsrec import inputs, ArgumentsObj
+from nsrec.models import create_model
+from nsrec import inputs
 
 _FLAGS = tf.flags.FLAGS
 
@@ -34,7 +34,6 @@ def inference(label_fn, bboxes=False, FLAGS=None):
     tf.logging.info("Skipping inference. No checkpoint found in: %s",
                     FLAGS.checkpoint_dir)
     return
-
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
