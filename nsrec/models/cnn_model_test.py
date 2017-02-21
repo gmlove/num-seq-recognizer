@@ -1,21 +1,10 @@
 import numpy as np
+
 from nsrec import test_helper
 from nsrec.models.cnn_model import *
 
 
 class CNNModelTest(tf.test.TestCase):
-
-  def test_train_mnist_model(self):
-    config = CNNGeneralModelConfig(batch_size=2, num_classes=10)
-    with self.test_session():
-      model = CNNMnistTrainModel(config)
-      model.build()
-
-      train_op = tf.contrib.layers.optimize_loss(
-        loss=model.total_loss, global_step=model.global_step,
-        learning_rate=0.1, optimizer=tf.train.MomentumOptimizer(0.5, momentum=0.5))
-      tf.contrib.slim.learning.train(
-        train_op, None, number_of_steps=2)
 
   def test_train_length_model(self):
     self._run_test(CNNLengthTrainModel)
@@ -32,10 +21,9 @@ class CNNModelTest(tf.test.TestCase):
       model.build()
 
       train_op = tf.contrib.layers.optimize_loss(
-        loss=model.total_loss, global_step=model.global_step,
-        learning_rate=0.1, optimizer=tf.train.MomentumOptimizer(0.5, momentum=0.5))
-      tf.contrib.slim.learning.train(
-        train_op, None, number_of_steps=2)
+        loss=model.total_loss, global_step=model.global_step, learning_rate=0.1,
+        optimizer=tf.train.MomentumOptimizer(0.5, momentum=0.5))
+      tf.contrib.slim.learning.train(train_op, None, number_of_steps=2)
 
   def test_bbox_inference(self):
     with self.test_session() as sess:
@@ -58,8 +46,7 @@ class CNNModelTest(tf.test.TestCase):
 
     with self.test_session() as sess:
       model = CNNBboxToExportModel(config)
-      model.init(model_vars)
-      model.build()
+      model.build(model_vars)
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, config.size[0], config.size[1], 3))})
       print(pbs)

@@ -47,3 +47,15 @@ def stack_output(max_number_length, length_output, numbers_output, name='output'
   for i in range(max_number_length):
     to_concat.append(tf.reshape(tf.nn.softmax(numbers_output[i]), (11, )))
   return tf.concat(axis=0, values=to_concat, name=name)
+
+
+def softmax_cross_entrophy_loss(logits, labels):
+  with ops.name_scope(None, 'Loss') as sc:
+    loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+    loss = tf.reduce_mean(loss)
+    total_loss = loss
+
+  tf.summary.scalar("loss/total_loss", total_loss)
+  for var in tf.trainable_variables():
+    tf.summary.histogram(var.op.name, var)
+  return total_loss

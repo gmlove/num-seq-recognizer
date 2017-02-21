@@ -3,12 +3,13 @@ from functools import reduce
 import numpy as np
 
 import tensorflow as tf
+from tensorflow.contrib import slim
+from tensorflow.python.framework import ops
+
 from nsrec import inputs
 from nsrec.nets import rnn
 from nsrec.utils.np_ops import correct_count
-from tensorflow.contrib import slim
-from tensorflow.python.framework import ops
-from utils.ops import all_model_variables_data, assign_vars, softmax_accuracy, global_step_variable, \
+from nsrec.utils.ops import all_model_variables_data, assign_vars, softmax_accuracy, global_step_variable, \
   gray_scale, stack_output
 
 

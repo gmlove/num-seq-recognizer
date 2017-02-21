@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 from models.cnn_model import create_model
 
+
 def export(FLAGS):
   # Build the inference graph.
   g = tf.Graph()
@@ -18,7 +19,6 @@ def export(FLAGS):
     tf.logging.info("Skipping inference. No checkpoint found in: %s",
                     FLAGS.checkpoint_dir)
     return
-
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.

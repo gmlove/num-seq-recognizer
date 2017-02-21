@@ -17,3 +17,13 @@ def end_points_collection_name(variable_scope):
 def trunc_normal(stddev):
   return tf.truncated_normal_initializer(0.0, stddev)
 
+
+def basic_net(cnn_net, data_batches, num_classes, is_training):
+  with cnn_net.variable_scope([data_batches]) as variable_scope:
+    end_points_collection_name = cnn_net.end_points_collection_name(variable_scope)
+  net, end_points_collection = cnn_net.cnn_layers(
+    data_batches, variable_scope, end_points_collection_name)
+  model_output, _ = cnn_net.fc_layers(
+    net, variable_scope, end_points_collection,
+    num_classes=num_classes, is_training=is_training, name_prefix='length')
+  return model_output
