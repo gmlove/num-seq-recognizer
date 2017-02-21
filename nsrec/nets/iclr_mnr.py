@@ -27,7 +27,8 @@ def cnn_layers(inputs, scope, end_points_collection, dropout_keep_prob=0.8, is_t
     net = slim.conv2d(net, 192, [5, 5], scope='conv7')
     net = slim.flatten(net)
 
-    net = slim.fully_connected(net, 3072, scope='fc8')
+    # By removing the fc layer, we'll get much smaller model with almost the same performance
+    # net = slim.fully_connected(net, 3072, scope='fc8')
 
   return net, end_points_collection
 
