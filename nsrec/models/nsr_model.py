@@ -203,7 +203,7 @@ class CNNNSRToExportModel:
     self.data_batches = None
 
     self.output = None
-    self.global_step = None
+    self.initializer = None
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
@@ -217,10 +217,10 @@ class CNNNSRToExportModel:
     self.length_output, self.numbers_output = nsr_net(
       self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
 
+    self.output = stack_output(
+      self.max_number_length, self.length_output, self.numbers_output, name='output')
     assign_ops = assign_vars(self._vars(), saved_vars_dict)
-    with tf.control_dependencies(assign_ops):
-      self.output = stack_output(
-        self.max_number_length, self.length_output, self.numbers_output, name='output')
+    self.initializer = tf.group(*assign_ops, name='initializer')
 
   def build(self, saved_vars_dict):
     self._setup_input()

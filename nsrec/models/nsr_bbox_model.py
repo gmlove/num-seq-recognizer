@@ -90,6 +90,7 @@ class CNNBBoxToExportModel:
     self.config.num_classes = 4
 
     self.output = None
+    self.initializer = None
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
@@ -101,9 +102,9 @@ class CNNBBoxToExportModel:
 
   def _setup_net(self, saved_vars_dict):
     model_output = basic_net(self.cnn_net, self.data_batches, self.config.num_classes, False)
+    self.output = tf.reshape(model_output, (-1, ), 'output-bbox')
     assign_ops = assign_vars(self._vars(), saved_vars_dict)
-    with tf.control_dependencies(assign_ops):
-      self.output = tf.reshape(model_output, (-1, ), 'output-bbox')
+    self.initializer = tf.group(*assign_ops, name="initializer-bbox")
 
   def build(self, saved_vars_dict):
     self._setup_input()

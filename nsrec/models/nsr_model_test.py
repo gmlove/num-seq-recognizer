@@ -51,16 +51,17 @@ class NSRModelTest(tf.test.TestCase):
   def test_model_export(self):
     config = CNNNSRInferModelConfig()
 
-    with self.test_session() as sess:
+    with self.test_session(tf.Graph()) as sess:
       model = CNNNSRInferenceModel(config)
       model.build()
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
       model_vars = model.vars(sess)
+      print(list(model_vars.keys()))
 
-    with self.test_session() as sess:
+    with self.test_session(tf.Graph()) as sess:
       model = CNNNSRToExportModel(config)
       model.build(model_vars)
-      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      sess.run(model.initializer)
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, 64, 64, 3))})
       print(pbs)
       self.assertEqual(len(pbs), 5 + 5 * 11)

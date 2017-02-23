@@ -1,8 +1,8 @@
 import numpy as np
 
 from nsrec import test_helper
-from models.nsr_bbox_model import *
-from models.model_config import *
+from nsrec.models.nsr_bbox_model import *
+from nsrec.models.model_config import *
 
 
 class NSRBBOXModelTest(tf.test.TestCase):
@@ -33,16 +33,16 @@ class NSRBBOXModelTest(tf.test.TestCase):
   def test_bbox_model_export(self):
     config = CNNNSRInferModelConfig()
 
-    with self.test_session() as sess:
+    with self.test_session(tf.Graph()) as sess:
       model = CNNBBoxInferModel(config)
       model.build()
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
       model_vars = model.vars(sess)
 
-    with self.test_session() as sess:
+    with self.test_session(tf.Graph()) as sess:
       model = CNNBBoxToExportModel(config)
       model.build(model_vars)
-      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      sess.run(model.initializer)
       pbs = sess.run(model.output, feed_dict={model.inputs: np.ones((1, config.size[0], config.size[1], 3))})
       print(pbs)
       self.assertEqual(len(pbs), 4)
