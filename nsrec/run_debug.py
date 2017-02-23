@@ -10,7 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 default_data_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/train.raw.tfrecords')
 tf.flags.DEFINE_string("data_file_path", default_data_file_path, "Data file path.")
 
-tf.flags.DEFINE_string("cnn_model_type", "all",
+tf.flags.DEFINE_string("model_type", "all",
                        "Model type. all: approximate all numbers; length: only approximate length")
 tf.flags.DEFINE_string("net_type", "lenet", "Which net to use: lenet or alexnet")
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")

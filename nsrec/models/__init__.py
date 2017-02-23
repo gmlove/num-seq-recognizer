@@ -26,20 +26,20 @@ def create_model(flags, mode='train'):
     'all-to_export': CNNNSRToExportModel
   }
 
-  key = '%s-%s' % (flags.cnn_model_type, mode)
+  key = '%s-%s' % (flags.model_type, mode)
   if flags.rnn:
     key = key + '-rnn'
     tf.logging.info('using rnn')
 
   if key not in model_clz:
-    raise Exception('Unimplemented model: model_type=%s, mode=%s' % (flags.cnn_model_type, mode))
+    raise Exception('Unimplemented model: model_type=%s, mode=%s' % (flags.model_type, mode))
 
   params_dict = {
     'net_type': flags.net_type,
     'gray_scale': flags.gray_scale
   }
 
-  if flags.cnn_model_type in ['length', 'all', 'bbox']:
+  if flags.model_type in ['length', 'all', 'bbox']:
     params_dict.update({'max_number_length': flags.max_number_length})
     if mode in ['train', 'eval']:
       params_dict.update({

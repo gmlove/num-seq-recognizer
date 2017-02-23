@@ -9,8 +9,9 @@ tf.logging.set_verbosity(getattr(tf.logging, FLAGS.log_level.upper()))
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-tf.flags.DEFINE_string("cnn_model_type", "all",
-                       "Model type. all: approximate all numbers; length: only approximate length")
+tf.flags.DEFINE_string("model_type", "all",
+                       "Model type. all: approximate all numbers; length: only approximate length;"
+                       "bbox: approximate bbox; mnist: approximate mnist")
 tf.flags.DEFINE_string("net_type", "iclr_mnr",
                        "Which net to use: lenet, lenet_v1, lenet_v2, iclr_mnr, alexnet, or inception_v3")
 tf.flags.DEFINE_bool("rnn", False, "Whether to use rnn as the output layer")

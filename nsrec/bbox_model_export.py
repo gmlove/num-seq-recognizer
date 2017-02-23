@@ -11,7 +11,7 @@ tf.flags.DEFINE_string("bbox_checkpoint_dir", None,
 
 
 def main(_):
-  args = ArgumentsObj('bbox').define_arg('cnn_model_type', 'bbox')
+  args = ArgumentsObj('bbox').define_arg('model_type', 'bbox')
   export(args)
 
 if __name__ == "__main__":
