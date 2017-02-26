@@ -54,13 +54,22 @@ class CNNBBoxInferModel:
     self.model_output = None
 
   def _setup_input(self):
-    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input-bbox')
+    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3))
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_net(self):
     self.model_output = basic_net(self.cnn_net, self.data_batches, self.config.num_classes, False)
 
   def infer(self, sess, data):
+    """
+    Args:
+      sess: tensorflow session
+      data: raw image data, shape should be [count, height, width, 3]
+
+    Returns:
+      A list of inferred bbox in pixels, structured by (left, top, width, height).
+
+    """
     # image.shape: (height, width, 3)
     original_sizes = [image.shape for image in data]
     input_data = [inputs.normalize_img(image, self.config.size) for image in data]
@@ -83,6 +92,9 @@ class CNNBBoxInferModel:
 
 
 class CNNBBoxToExportModel:
+  INITIALIZER_NODE_NAME = "initializer-bbox"
+  OUTPUT_NODE_NAME = 'output-bbox'
+  INPUT_NODE_NAME = 'input-bbox'
 
   def __init__(self, config):
     self.config = config
@@ -97,14 +109,15 @@ class CNNBBoxToExportModel:
     return dict(zip([v.name for v in coll], coll))
 
   def _setup_input(self):
-    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input-bbox')
+    self.inputs = tf.placeholder(
+      tf.float32, (None, self.config.size[0], self.config.size[1], 3), name=self.INPUT_NODE_NAME)
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_net(self, saved_vars_dict):
     model_output = basic_net(self.cnn_net, self.data_batches, self.config.num_classes, False)
-    self.output = tf.reshape(model_output, (-1, ), 'output-bbox')
+    self.output = tf.reshape(model_output, (-1, ), self.OUTPUT_NODE_NAME)
     assign_ops = assign_vars(self._vars(), saved_vars_dict)
-    self.initializer = tf.group(*assign_ops, name="initializer-bbox")
+    self.initializer = tf.group(*assign_ops, name=self.INITIALIZER_NODE_NAME)
 
   def build(self, saved_vars_dict):
     self._setup_input()
