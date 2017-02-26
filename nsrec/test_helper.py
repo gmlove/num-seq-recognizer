@@ -17,6 +17,9 @@ test_metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
 test_data_file = os.path.join(test_dir_path, 'data.tfrecords')
 test_mat_metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
 train_data_dir_path = relative_file('../data/train')
+test_graph_file = os.path.join(test_dir_path, 'graph.pb')
+output_graph_file = relative_file('../output/export/graph.pb')
+output_bbox_graph_file = relative_file('../output/export/graph-bbox.pb')
 _test_metadata_file_created = False
 
 

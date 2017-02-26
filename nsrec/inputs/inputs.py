@@ -145,12 +145,11 @@ def crop_to_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
     top, bottom = 0, h
   if right - left < accept_min_rate * w:
     left, right = 0, w
-  print(top, bottom, left, right)
   return image[top:bottom, left:right, :]
 
 
-def read_img(img_file, bbox):
-  image = ndimage.imread(img_file)
+def read_img(img_file, bbox=None):
+  image = ndimage.imread(img_file) # image.shape: [height, width, channel]
   if bbox:
     image = crop_to_bbox(image, image.shape[1], image.shape[0], bbox, 0, 0)
   return image
