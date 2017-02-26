@@ -6,8 +6,6 @@ FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string("output_file_name", "graph-bbox.pb",
                        "Output file name.")
-tf.flags.DEFINE_string("bbox_checkpoint_dir", None,
-                       "Directory containing model checkpoints.")
 
 
 def main(_):
