@@ -84,7 +84,7 @@ def parse_data(mat_metadata_file_path, max_number_length, data_dir_path,
     bbox, sep_bbox_list, size = fix_bboxes(md, data_dir_path)
     sep_bbox_list = [[int(v) for v in bb] for bb in sep_bbox_list]
 
-    if any([isValidBBox(bb, size) for bb in [bbox] + sep_bbox_list]):
+    if any([is_valid_bbox(bb, size) for bb in [bbox] + sep_bbox_list]):
       tf.logging.info('ignore failed to fix record %s(%s), bad bbox. bbox=%s, sep_bbox_list=%s',
                       md.filename, size, bbox, sep_bbox_list)
       continue
@@ -117,9 +117,8 @@ def parse_data(mat_metadata_file_path, max_number_length, data_dir_path,
   return rand_filenames, rand_labels, rand_bboxes, rand_sep_bboxes
 
 
-def isValidBBox(bbox, size):
-  isValidBBoxes = any([j < 0 for j in bbox]) or bbox[0] >= size[0] or bbox[1] >= size[1]
-  return isValidBBoxes
+def is_valid_bbox(bbox, size):
+  return any([j < 0 for j in bbox]) or bbox[0] >= size[0] or bbox[1] >= size[1]
 
 
 def fix_bboxes(md, data_dir_path):

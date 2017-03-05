@@ -3,45 +3,100 @@ import os
 import h5py
 import numpy as np
 from scipy import ndimage, misc
-from six.moves import cPickle as pickle
 
 import tensorflow as tf
 from nsrec.inputs.models import BBox, Data
-from nsrec.utils.np_ops import one_hot
 
 
-def bbox_batches(data_file_path, batch_size, size, max_number_length, num_preprocess_threads=1, is_training=True, channels=3):
+class BBoxImageFeature:
+
+  def __init__(self, serialized_example, channels, is_training, size, max_number_length):
+    self.serialized_example = serialized_example
+    self.channels = channels
+    self.is_training = is_training
+    self.size = size
+    self.max_number_length = max_number_length
+
+  def _features_dict(self):
+    return {
+      'image_png': tf.FixedLenFeature([], tf.string),
+      'bbox': tf.FixedLenFeature([4], tf.int64),
+    }
+
+  def read_features(self):
+    features = tf.parse_single_example(self.serialized_example, features=self._features_dict())
+    self._parse_features(features)
+
+  def _parse_features(self, features):
+    self.image, self.bbox = features['image_png'], features['bbox']
+
+  def _normalize_bbox(self, img_shape):
+    bbox = tf.cast(self.bbox, tf.int32)
+    normalized_bbox = [bbox[0] / img_shape[1], bbox[1] / img_shape[0],
+                       bbox[2] / img_shape[1], bbox[3] / img_shape[0]]
+    return tf.cast(normalized_bbox, tf.float32)
+
+  def build_batch_data(self):
+    dequeued_img = tf.image.decode_png(self.image, self.channels)
+    img_shape = tf.shape(dequeued_img)
+    dequeued_img = resize_image(dequeued_img, None, self.is_training, self.size, self.channels)
+    normalized_bbox = self._normalize_bbox(img_shape)
+    return [dequeued_img, normalized_bbox]
+
+
+class SepBBox0ImageFeature(BBoxImageFeature):
+
+  def __init__(self, *args):
+    super().__init__(*args)
+
+  def _features_dict(self):
+    features_dict = super()._features_dict()
+    features_dict.update({'sep_bbox_list': tf.FixedLenFeature([4 * self.max_number_length], tf.int64)})
+    return features_dict
+
+  def _parse_features(self, features):
+    self.image, self.bbox = features['image_png'], features['sep_bbox_list']
+
+
+class Number0BBoxImageFeature(BBoxImageFeature):
+
+  def __init__(self, *args):
+    super().__init__(*args)
+
+  def _features_dict(self):
+    features_dict = super()._features_dict()
+    features_dict.update({'bbox_number_0': tf.FixedLenFeature([4], tf.int64)})
+    return features_dict
+
+  def _parse_features(self, features):
+    self.image, self.bbox = features['image_png'], features['bbox_number_0']
+
+
+def _create_image_feature(target_bbox, serialized_example, channels, is_training, size, max_number_length):
+  if target_bbox == 'sep_bbox_0':
+    return SepBBox0ImageFeature(serialized_example, channels, is_training, size, max_number_length)
+  elif target_bbox == 'number_0':
+    return Number0BBoxImageFeature(serialized_example, channels, is_training, size, max_number_length)
+  elif target_bbox is None:
+    return BBoxImageFeature(serialized_example, channels, is_training, size, max_number_length)
+  else:
+    raise Exception('unsupported target_bbox: %s' % target_bbox)
+
+
+def bbox_batches(data_file_path, batch_size, size, max_number_length,
+                 num_preprocess_threads=1, is_training=True, channels=3, target_bbox=None):
   filename_queue = tf.train.string_input_producer([data_file_path])
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)
-  features = tf.parse_single_example(
-    serialized_example,
-    features={
-      'image_png': tf.FixedLenFeature([], tf.string),
-      'bbox': tf.FixedLenFeature([4], tf.int64),
-      'sep_bbox_list': tf.FixedLenFeature([4 * max_number_length], tf.int64),
-      'bbox_number_0': tf.FixedLenFeature([4], tf.int64),
-    })
-  image, bbox, sep_bbox_list = features['image_png'], features['bbox'], features['sep_bbox_list']
-  bbox, sep_bbox_list = tf.cast(bbox, tf.int32), tf.cast(sep_bbox_list, tf.int32)
-  bbox_number_0 = tf.cast(features['bbox_number_0'], tf.int32)
+
+  img_feature = _create_image_feature(target_bbox, serialized_example, channels, is_training, size, max_number_length)
+  img_feature.read_features()
 
   dequeued_data = []
   for i in range(num_preprocess_threads):
-    dequeued_img = tf.image.decode_png(image, channels)
-    img_shape = tf.shape(dequeued_img)
-    dequeued_img = resize_image(dequeued_img, None, is_training, size, channels)
-    # normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
-    # normalized_bbox = [sep_bbox_list[0]/img_shape[1], sep_bbox_list[1]/img_shape[0],
-    #                    sep_bbox_list[2]/img_shape[1], sep_bbox_list[3]/img_shape[0]]
-    normalized_bbox = [bbox_number_0[0]/img_shape[1], bbox_number_0[1]/img_shape[0],
-                       bbox_number_0[2]/img_shape[1], bbox_number_0[3]/img_shape[0]]
-    normalized_bbox = tf.cast(normalized_bbox, tf.float32)
-    dequeued_data.append([dequeued_img, normalized_bbox])
+    dequeued_data.append(img_feature.build_batch_data())
 
-  return tf.train.batch_join(
-    dequeued_data,
-    batch_size=batch_size, capacity=batch_size * 3)
+  return tf.train.batch_join(dequeued_data, batch_size=batch_size, capacity=batch_size * 3)
 
 
 def batches(data_file_path, max_number_length, batch_size, size,
@@ -65,9 +120,7 @@ def batches(data_file_path, max_number_length, batch_size, size,
     dequeued_img = resize_image(dequeued_img, bbox, is_training, size, channels)
     dequeued_data.append([dequeued_img, tf.one_hot(length - 1, max_number_length)[0], tf.one_hot(label, 11)])
 
-  return tf.train.batch_join(
-    dequeued_data,
-    batch_size=batch_size, capacity=batch_size * 3)
+  return tf.train.batch_join(dequeued_data, batch_size=batch_size, capacity=batch_size * 3)
 
 
 def resize_image(dequeued_img, dequeued_bbox, is_training, size, channels=1):

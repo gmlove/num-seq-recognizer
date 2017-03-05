@@ -2,7 +2,7 @@ import os
 
 import h5py
 
-from nsrec.data_preprocessor import write_tf_records
+from nsrec.data_preprocessor import write_tf_records, write_pickle
 from nsrec.inputs import metadata_generator
 
 
@@ -15,6 +15,7 @@ test_dir_path = relative_file('test_data')
 train_mat_metadata_file = relative_file('../data/train/digitStruct.mat')
 test_metadata_file = os.path.join(test_dir_path, 'metadata.pickle')
 test_data_file = os.path.join(test_dir_path, 'data.tfrecords')
+test_data_file_number_0 = os.path.join(test_dir_path, 'data.number0.tfrecords')
 test_mat_metadata_file = os.path.join(test_dir_path, 'digitStruct.mat')
 train_data_dir_path = relative_file('../data/train')
 test_graph_file = os.path.join(test_dir_path, 'graph.pb')
@@ -42,6 +43,8 @@ def _create_test_data():
     sep_bboxes.append([[int(bb.left), int(bb.top), int(bb.width), int(bb.height)] for bb in data.bboxes])
 
   write_tf_records(filenames, labels, 5, bboxes, sep_bboxes, 'full', train_data_dir_path, test_data_file)
+  write_tf_records(filenames, labels, 5, bboxes, sep_bboxes, 'number_0', train_data_dir_path, test_data_file_number_0)
+  write_pickle(bboxes, filenames, labels, sep_bboxes, test_metadata_file)
 
 
 def get_mat_test_metadata():
