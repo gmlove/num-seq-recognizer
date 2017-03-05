@@ -19,8 +19,14 @@ tar xzvf train.tar.gz test.tar.gz extra.tar.gz
 
 python3 nsrec/data_preprocessor.py \
     --metadata_file_path=./data/train/digitStruct.mat \
-    --output_file_path=./data/train/metadata.pickle \
+    --output_file_path=./data/train/metadata-randbox.pickle \
     --data_dir_path=./data/train
+
+python3 nsrec/data_preprocessor.py \
+    --metadata_file_path=./data/train/digitStruct.mat \
+    --output_file_path=./data/train/metadata.pickle \
+    --data_dir_path=./data/train \
+    --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
     --metadata_file_path=./data/test/digitStruct.mat \
@@ -35,14 +41,20 @@ python3 nsrec/data_preprocessor.py \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --metadata_file_path=./data/extra/digitStruct.mat,./data/train/digitStruct.mat \
-    --data_dir_path=./data/extra,./data/train \
+    --metadata_file_path=./data/extra/metadata.pickle,./data/train/metadata.pickle \
+    --data_dir_path=./data,./data \
     --output_file_path=./data/extra-train.raw.tfrecords \
     --rand_bbox_count=0
 
 python3 nsrec/data_preprocessor.py \
-    --metadata_file_path=./data/test/digitStruct.mat \
-    --data_dir_path=./data/test \
+    --metadata_file_path=./data/extra/metadata.pickle,./data/train/metadata-randbox.pickle \
+    --data_dir_path=./data,./data \
+    --output_file_path=./data/extra-train_randbox.raw.tfrecords \
+    --rand_bbox_count=0
+
+python3 nsrec/data_preprocessor.py \
+    --metadata_file_path=./data/test/metadata.pickle \
+    --data_dir_path=./data \
     --output_file_path=./data/test.raw.tfrecords \
     --rand_bbox_count=0
 

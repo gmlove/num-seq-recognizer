@@ -10,7 +10,7 @@ from nsrec.inputs.models import BBox, Data
 from nsrec.utils.np_ops import one_hot
 
 
-def bbox_batches(data_file_path, batch_size, size, num_preprocess_threads=1, is_training=True, channels=3):
+def bbox_batches(data_file_path, batch_size, size, max_number_length, num_preprocess_threads=1, is_training=True, channels=3):
   filename_queue = tf.train.string_input_producer([data_file_path])
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)
@@ -19,16 +19,19 @@ def bbox_batches(data_file_path, batch_size, size, num_preprocess_threads=1, is_
     features={
       'image_png': tf.FixedLenFeature([], tf.string),
       'bbox': tf.FixedLenFeature([4], tf.int64),
+      'sep_bbox_list': tf.FixedLenFeature([4 * max_number_length], tf.int64),
     })
-  image, bbox = features['image_png'], features['bbox']
-  bbox = tf.cast(bbox, tf.int32)
+  image, bbox, sep_bbox_list = features['image_png'], features['bbox'], features['sep_bbox_list']
+  bbox, sep_bbox_list = tf.cast(bbox, tf.int32), tf.cast(sep_bbox_list, tf.int32)
 
   dequeued_data = []
   for i in range(num_preprocess_threads):
     dequeued_img = tf.image.decode_png(image, channels)
     img_shape = tf.shape(dequeued_img)
     dequeued_img = resize_image(dequeued_img, None, is_training, size, channels)
-    normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
+    # normalized_bbox = [bbox[0]/img_shape[1], bbox[1]/img_shape[0], bbox[2]/img_shape[1], bbox[3]/img_shape[0]]
+    normalized_bbox = [sep_bbox_list[0]/img_shape[1], sep_bbox_list[1]/img_shape[0],
+                       sep_bbox_list[2]/img_shape[1], sep_bbox_list[3]/img_shape[0]]
     normalized_bbox = tf.cast(normalized_bbox, tf.float32)
     dequeued_data.append([dequeued_img, normalized_bbox])
 

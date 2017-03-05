@@ -20,7 +20,8 @@ class CNNBBoxTrainModel:
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.label_batches = \
-        inputs.bbox_batches(config.data_file_path, config.batch_size, config.size, channels=self.config.channels)
+        inputs.bbox_batches(config.data_file_path, config.batch_size, config.size, config.max_number_length,
+                            channels=self.config.channels)
 
   def _setup_net(self):
     self.model_output = basic_net(self.cnn_net, self.data_batches, self.config.num_classes, True)
