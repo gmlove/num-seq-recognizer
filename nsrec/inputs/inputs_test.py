@@ -47,7 +47,7 @@ class InputTest(tf.test.TestCase):
     with self.test_session() as sess:
       data_file_path = test_helper.get_test_metadata()
       data_batches, bbox_batches = \
-        inputs.bbox_batches(data_file_path, batch_size, size, num_preprocess_threads=1, channels=3)
+        inputs.bbox_batches(data_file_path, batch_size, size, 5, num_preprocess_threads=1, channels=3)
 
       self.assertEqual(data_batches.get_shape(), (2, 28, 28, 3))
       self.assertEqual(bbox_batches.get_shape(), (2, 4))

@@ -20,6 +20,7 @@ tf.flags.DEFINE_string("final_data_dir_path", "",
 tf.flags.DEFINE_string("output_file_path", "",
                        "Output file path.")
 tf.flags.DEFINE_bool("rand_bbox_count", 5, "How many rand bbox to generate.")
+tf.flags.DEFINE_string('tf_record_builder', 'full', 'Builder to build features, supported: full, number_0')
 
 
 def main(args, **kwargs):
@@ -50,7 +51,7 @@ def main(args, **kwargs):
     write_pickle(final_bboxes, final_filenames, final_labels, final_sep_bboxes, output_file_path)
   elif output_file_path.endswith('.tfrecords'):
     write_tf_records(final_filenames, final_labels, FLAGS.max_number_length, final_bboxes, final_sep_bboxes,
-                     data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
+                     FLAGS.tf_record_builder, data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
   else:
     raise Exception('output_file_path must end with .pickle or .tfrecords: %s' % output_file_path)
 
@@ -199,23 +200,42 @@ def join_bboxes(bboxes):
   return joined
 
 
-def write_tf_records(filenames, labels, max_number_length, bboxes, sep_bboxes, data_dir_path, output_file_path):
-  print('Writing %s records to file %s' % (len(filenames), output_file_path))
-  writer = tf.python_io.TFRecordWriter(output_file_path)
+def create_tf_record_builder(name):
 
-  labels_lengths = [min(max_number_length, len(l)) for l in labels]
-  normalized_labels = [_normalize_label(l, max_number_length) for l in labels]
-  normalized_sep_bbox_list = [_normalize_sep_bbox_list(sbl, max_number_length) for sbl in sep_bboxes]
-  joined_sep_bbox_list = [join_bboxes(sbl) for sbl in normalized_sep_bbox_list]
+  def full_builder(image_png, label, bbox, sep_bbox_list, max_number_length):
+    return {
+      'label': _int64_feature(_normalize_label(label, max_number_length)),
+      'length': _int64_feature([min(max_number_length, len(label))]),
+      'bbox': _int64_feature(bbox),
+      'sep_bbox_list': _int64_feature(join_bboxes(_normalize_sep_bbox_list(sep_bbox_list, max_number_length))),
+      'image_png': _bytes_feature(image_png)
+    }
+
+  def number_0_builder(image_png, label, bbox, sep_bbox_list, max_number_length):
+    idx_0 = label.find('0')
+    if idx_0 == -1: return None
+    base_features = full_builder(image_png, label, bbox, sep_bbox_list, max_number_length)
+    return base_features.update({
+      'bbox_number_0': _int64_feature(sep_bbox_list[idx_0])
+    })
+
+  if name == 'full': return full_builder
+  if name == 'number_0': return number_0_builder
+  raise Exception('unknown tf record builder: %s' % name)
+
+
+def write_tf_records(filenames, labels, max_number_length, bboxes, sep_bboxes, tf_record_builder,
+                     data_dir_path, output_file_path):
+  print('Writing %s records to file %s, using tf_record_builder: %s' %
+        (len(filenames), output_file_path, tf_record_builder))
+  writer = tf.python_io.TFRecordWriter(output_file_path)
+  tf_record_builder = create_tf_record_builder(tf_record_builder)
 
   for index in range(len(filenames)):
     image_png = open(os.path.join(data_dir_path, filenames[index]), 'rb').read()
-    example = tf.train.Example(features=tf.train.Features(feature={
-      'label': _int64_feature(normalized_labels[index]),
-      'length': _int64_feature([labels_lengths[index]]),
-      'bbox': _int64_feature(bboxes[index]),
-      'sep_bbox_list': _int64_feature(joined_sep_bbox_list[index]),
-      'image_png': _bytes_feature(image_png)}))
+    record_features = tf_record_builder(image_png, labels[index], bboxes[index], sep_bboxes[index], max_number_length)
+    if record_features is None: continue
+    example = tf.train.Example(features=tf.train.Features(feature=record_features))
     writer.write(example.SerializeToString())
   writer.close()
 

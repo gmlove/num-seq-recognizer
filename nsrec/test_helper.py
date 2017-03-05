@@ -41,7 +41,7 @@ def _create_test_data():
     bboxes.append(data.bbox())
     sep_bboxes.append([[int(bb.left), int(bb.top), int(bb.width), int(bb.height)] for bb in data.bboxes])
 
-  write_tf_records(filenames, labels, 5, bboxes, sep_bboxes, train_data_dir_path, test_data_file)
+  write_tf_records(filenames, labels, 5, bboxes, sep_bboxes, 'full', train_data_dir_path, test_data_file)
 
 
 def get_mat_test_metadata():
