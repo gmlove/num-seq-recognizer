@@ -215,9 +215,10 @@ def create_tf_record_builder(name):
     idx_0 = label.find('0')
     if idx_0 == -1: return None
     base_features = full_builder(image_png, label, bbox, sep_bbox_list, max_number_length)
-    return base_features.update({
+    base_features.update({
       'bbox_number_0': _int64_feature(sep_bbox_list[idx_0])
     })
+    return base_features
 
   if name == 'full': return full_builder
   if name == 'number_0': return number_0_builder
