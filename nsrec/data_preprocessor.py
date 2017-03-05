@@ -125,7 +125,8 @@ def fix_bboxes(md, data_dir_path):
   bbox, size = fix_bbox(md.bbox(), filename=md.filename, data_dir_path=data_dir_path)
   sep_bbox_list = []
   for sep_bbox in md.bboxes:
-    sep_bbox, size = fix_bbox([sep_bbox.left, sep_bbox.top, sep_bbox.width, sep_bbox.height], im_size=size)
+    sep_bbox, size = fix_bbox([sep_bbox.left, sep_bbox.top, sep_bbox.width, sep_bbox.height],
+                              filename=md.filename, data_dir_path=data_dir_path, im_size=size)
     sep_bbox_list.append(sep_bbox)
   return bbox, sep_bbox_list, size
 
