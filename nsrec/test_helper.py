@@ -34,13 +34,14 @@ def get_test_metadata():
 def _create_test_data():
   mat_metadata_file = get_mat_test_metadata()
 
-  filenames, labels, bboxes = [], [], []
+  filenames, labels, bboxes, sep_bboxes = [], [], [], []
   for i, data in enumerate(metadata_generator(mat_metadata_file)):
     filenames.append(data.filename)
     labels.append(data.label)
     bboxes.append(data.bbox())
+    sep_bboxes.append([[int(bb.left), int(bb.top), int(bb.width), int(bb.height)] for bb in data.bboxes])
 
-  write_tf_records(filenames, labels, 5, bboxes, train_data_dir_path, test_data_file)
+  write_tf_records(filenames, labels, 5, bboxes, sep_bboxes, train_data_dir_path, test_data_file)
 
 
 def get_mat_test_metadata():

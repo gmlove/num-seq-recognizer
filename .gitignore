@@ -1,4 +1,5 @@
 data/
+docker/
 logs/
 output/
 nsrec/test_data

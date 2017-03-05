@@ -31,11 +31,11 @@ def main(args, **kwargs):
   data_dir_paths = FLAGS.data_dir_path.split(',')
   assert len(metadata_file_paths) == len(data_dir_paths)
 
-  final_filenames, final_labels, final_bboxes = [], [], []
+  final_filenames, final_labels, final_bboxes, final_sep_bboxes = [], [], [], []
 
   for i in range(len(metadata_file_paths)):
     metadata_file_path, data_dir_path = metadata_file_paths[i], data_dir_paths[i]
-    filenames, labels, bboxes = _read_meta_data(
+    filenames, labels, bboxes, sep_bboxes = _read_meta_data(
       data_dir_path, metadata_file_path, FLAGS.max_number_length, FLAGS.rand_bbox_count)
 
     data_dir_path_last_section = data_dir_path.split('/')[-1]
@@ -43,12 +43,13 @@ def main(args, **kwargs):
     final_filenames.extend([data_dir_path_last_section + '/' + fn for fn in filenames])
     final_bboxes.extend(bboxes)
     final_labels.extend(labels)
+    final_sep_bboxes.extend(sep_bboxes)
 
   output_file_path = FLAGS.output_file_path
   if output_file_path.endswith('.pickle'):
-    write_pickle(final_bboxes, final_filenames, final_labels, output_file_path)
+    write_pickle(final_bboxes, final_filenames, final_labels, final_sep_bboxes, output_file_path)
   elif output_file_path.endswith('.tfrecords'):
-    write_tf_records(final_filenames, final_labels, FLAGS.max_number_length, final_bboxes,
+    write_tf_records(final_filenames, final_labels, FLAGS.max_number_length, final_bboxes, final_sep_bboxes,
                      data_dir_paths[0][:data_dir_paths[0].rfind('/')], output_file_path)
   else:
     raise Exception('output_file_path must end with .pickle or .tfrecords: %s' % output_file_path)
@@ -60,28 +61,31 @@ def _read_meta_data(data_dir_path, metadata_file_path, max_number_length, rand_b
                       data_dir_path, rand_bbox_count)
   elif metadata_file_path.endswith('.pickle'):
     metadata = pickle.loads(open(metadata_file_path, 'rb').read())
-    return metadata['filenames'], metadata['labels'], metadata['bboxes']
+    return metadata['filenames'], metadata['labels'], metadata['bboxes'], metadata['sep_bboxes']
 
 
-def write_pickle(final_bboxes, final_filenames, final_labels, output_file_path):
+def write_pickle(final_bboxes, final_filenames, final_labels, final_sep_bboxes, output_file_path):
   print('Writing %s records to file %s' % (len(final_filenames), output_file_path))
-  pickle.dump({'filenames': final_filenames, 'labels': final_labels, 'bboxes': final_bboxes},
-              open(output_file_path, 'wb'))
+  metadata = {'filenames': final_filenames, 'labels': final_labels, 'bboxes': final_bboxes,
+             'sep_bboxes': final_sep_bboxes}
+  pickle.dump(metadata, open(output_file_path, 'wb'))
 
 
 def parse_data(mat_metadata_file_path, max_number_length, data_dir_path,
                rand_box_count=5):
   metadata = metadata_generator(mat_metadata_file_path)
-  filenames, labels, bboxes = [], [], []
+  filenames, labels, bboxes, sep_bboxes = [], [], [], []
   for i, md in enumerate(metadata):
     if len(md.label) > max_number_length:
       tf.logging.info('ignore record, label too long: label=%s, filename=%s', md.label, md.filename)
       continue
 
-    bbox, size = fix_bbox(md, data_dir_path)
+    bbox, sep_bbox_list, size = fix_bboxes(md, data_dir_path)
+    sep_bbox_list = [[int(v) for v in bb] for bb in sep_bbox_list]
 
-    if any([j < 0 for j in bbox]) or bbox[0] >= size[0] or bbox[1] >= size[1]:
-      tf.logging.info('ignore failed to fix record %s, bad bbox. bbox=%s', md.filename, bbox)
+    if any([isValidBBox(bb, size) for bb in [bbox] + sep_bbox_list]):
+      tf.logging.info('ignore failed to fix record %s(%s), bad bbox. bbox=%s, sep_bbox_list=%s',
+                      md.filename, size, bbox, sep_bbox_list)
       continue
 
     if rand_box_count != 0:
@@ -90,34 +94,52 @@ def parse_data(mat_metadata_file_path, max_number_length, data_dir_path,
         filenames.append(md.filename)
         labels.append(md.label)
         bboxes.append(rand_bboxes[i])
+        sep_bboxes.append(sep_bbox_list)
     else:
       filenames.append(md.filename)
       labels.append(md.label)
       bboxes.append(bbox)
+      sep_bboxes.append(sep_bbox_list)
 
     if i % 1000 == 0 and i > 0:
       tf.logging.info('readed count: %s', i)
 
   rand_idxes = list(range(len(filenames)))
   random.shuffle(rand_idxes)
-  rand_filenames, rand_labels, rand_bboxes = [], [], []
+  rand_filenames, rand_labels, rand_bboxes, rand_sep_bboxes = [], [], [], []
   for i in rand_idxes:
     rand_filenames.append(filenames[i])
     rand_labels.append(labels[i])
     rand_bboxes.append(bboxes[i])
+    rand_sep_bboxes.append(sep_bboxes[i])
 
-  return rand_filenames, rand_labels, rand_bboxes
+  return rand_filenames, rand_labels, rand_bboxes, rand_sep_bboxes
 
 
-def fix_bbox(md, data_dir_path):
-  bbox = list(md.bbox())
+def isValidBBox(bbox, size):
+  isValidBBoxes = any([j < 0 for j in bbox]) or bbox[0] >= size[0] or bbox[1] >= size[1]
+  return isValidBBoxes
+
+
+def fix_bboxes(md, data_dir_path):
+  bbox, size = fix_bbox(md.bbox(), filename=md.filename, data_dir_path=data_dir_path)
+  sep_bbox_list = []
+  for sep_bbox in md.bboxes:
+    sep_bbox, size = fix_bbox([sep_bbox.left, sep_bbox.top, sep_bbox.width, sep_bbox.height], im_size=size)
+    sep_bbox_list.append(sep_bbox)
+  return bbox, sep_bbox_list, size
+
+
+def fix_bbox(bbox, filename=None, data_dir_path=None, im_size=None):
+  bbox = list(bbox)
   if any([j < 0 for j in bbox]):
-    tf.logging.info('fix record %s, bad bbox. bbox=%s', md.filename, bbox)
+    tf.logging.info('fix record %s, bad bbox. bbox=%s', filename, bbox)
     bbox = [max(k, 0) for k in bbox]
-    tf.logging.info('fix record %s to bbox=%s', md.filename, bbox)
-  im = Image.open(os.path.join(data_dir_path, md.filename))
-  im_size = im.size
-  im.close()
+    tf.logging.info('fix record %s to bbox=%s', filename, bbox)
+  if not im_size:
+    im = Image.open(os.path.join(data_dir_path, filename))
+    im_size = im.size
+    im.close()
   if bbox[0] + bbox[2] > im_size[0] or bbox[1] + bbox[3] > im_size[1]:
     tf.logging.info('fix record %s, bad bbox. bbox=%s, size=%s', md.filename, bbox, im_size)
     bbox[2] = im_size[0] - bbox[0] if bbox[0] + bbox[2] > im_size[0] else bbox[2]
@@ -161,12 +183,29 @@ def _normalize_label(label, max_number_length):
   return normalized
 
 
-def write_tf_records(filenames, labels, max_number_length, bboxes, data_dir_path, output_file_path):
+def _normalize_sep_bbox_list(sep_bbox_list, max_number_length):
+  sep_bbox_list = [[int(v) for v in bb] for bb in sep_bbox_list]
+  sep_bbox_list = sep_bbox_list[:max_number_length]
+  normalized = np.array([[0, 0, 0, 0] for _ in range(max_number_length)])
+  normalized[0: len(sep_bbox_list)] = sep_bbox_list
+  return normalized
+
+
+def join_bboxes(bboxes):
+  joined = []
+  for bbox in bboxes:
+    joined.extend(bbox)
+  return joined
+
+
+def write_tf_records(filenames, labels, max_number_length, bboxes, sep_bboxes, data_dir_path, output_file_path):
   print('Writing %s records to file %s' % (len(filenames), output_file_path))
   writer = tf.python_io.TFRecordWriter(output_file_path)
 
   labels_lengths = [min(max_number_length, len(l)) for l in labels]
   normalized_labels = [_normalize_label(l, max_number_length) for l in labels]
+  normalized_sep_bbox_list = [_normalize_sep_bbox_list(sbl, max_number_length) for sbl in sep_bboxes]
+  joined_sep_bbox_list = [join_bboxes(sbl) for sbl in normalized_sep_bbox_list]
 
   for index in range(len(filenames)):
     image_png = open(os.path.join(data_dir_path, filenames[index]), 'rb').read()
@@ -174,6 +213,7 @@ def write_tf_records(filenames, labels, max_number_length, bboxes, data_dir_path
       'label': _int64_feature(normalized_labels[index]),
       'length': _int64_feature([labels_lengths[index]]),
       'bbox': _int64_feature(bboxes[index]),
+      'sep_bbox_list': _int64_feature(joined_sep_bbox_list[index]),
       'image_png': _bytes_feature(image_png)}))
     writer.write(example.SerializeToString())
   writer.close()
