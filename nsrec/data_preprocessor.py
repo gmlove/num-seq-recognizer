@@ -141,10 +141,10 @@ def fix_bbox(bbox, filename=None, data_dir_path=None, im_size=None):
     im_size = im.size
     im.close()
   if bbox[0] + bbox[2] > im_size[0] or bbox[1] + bbox[3] > im_size[1]:
-    tf.logging.info('fix record %s, bad bbox. bbox=%s, size=%s', md.filename, bbox, im_size)
+    tf.logging.info('fix record %s, bad bbox. bbox=%s, size=%s', filename, bbox, im_size)
     bbox[2] = im_size[0] - bbox[0] if bbox[0] + bbox[2] > im_size[0] else bbox[2]
     bbox[3] = im_size[1] - bbox[1] if bbox[1] + bbox[3] > im_size[1] else bbox[3]
-    tf.logging.info('fix record %s to bbox=%s, size=%s', md.filename, bbox, im_size)
+    tf.logging.info('fix record %s to bbox=%s, size=%s', filename, bbox, im_size)
   return bbox, im_size
 
 

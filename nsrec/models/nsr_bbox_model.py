@@ -27,7 +27,7 @@ class CNNBBoxTrainModel:
 
   def _setup_loss(self):
     with ops.name_scope(None, 'Loss') as sc:
-      loss = tf.reduce_mean(tf.abs(self.label_batches - self.model_output))
+      loss = tf.reduce_mean(tf.square(self.label_batches * 100 - self.model_output))
       self.total_loss = loss
 
     tf.summary.scalar("loss/total_loss", self.total_loss)
