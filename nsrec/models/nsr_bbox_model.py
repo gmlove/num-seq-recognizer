@@ -28,7 +28,7 @@ class CNNBBoxTrainModel:
 
   def _setup_loss(self):
     with ops.name_scope(None, 'Loss') as sc:
-      loss = tf.reduce_mean(tf.square(self.label_batches * 100 - self.model_output))
+      loss = tf.reduce_mean(tf.square(self.label_batches - self.model_output))
       self.total_loss = loss
 
     tf.summary.scalar("loss/total_loss", self.total_loss)
@@ -79,8 +79,8 @@ class CNNBBoxInferModel:
     for i in range(len(data)):
       inferred_bbox, original_size = inferred_bboxes[i], original_sizes[i]
       result.append(list(map(lambda x: int(x), [
-        inferred_bbox[0] * original_size[1], inferred_bbox[1] * original_size[0],
-        inferred_bbox[2] * original_size[1], inferred_bbox[3] * original_size[0],
+        inferred_bbox[0] * original_size[1] / 100, inferred_bbox[1] * original_size[0] / 100,
+        inferred_bbox[2] * original_size[1] / 100, inferred_bbox[3] * original_size[0] / 100,
       ])))
     return result
 

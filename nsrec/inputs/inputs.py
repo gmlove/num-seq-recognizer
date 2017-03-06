@@ -32,8 +32,8 @@ class BBoxImageFeature:
 
   def _normalize_bbox(self, img_shape):
     bbox = tf.cast(self.bbox, tf.int32)
-    normalized_bbox = [bbox[0] / img_shape[1], bbox[1] / img_shape[0],
-                       bbox[2] / img_shape[1], bbox[3] / img_shape[0]]
+    normalized_bbox = [bbox[0] * 100 / img_shape[1], bbox[1] * 100 / img_shape[0],
+                       bbox[2] * 100 / img_shape[1], bbox[3] * 100 / img_shape[0]]
     return tf.cast(normalized_bbox, tf.float32)
 
   def build_batch_data(self):

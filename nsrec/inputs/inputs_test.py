@@ -44,16 +44,17 @@ class InputTest(tf.test.TestCase):
 
   def test_bbox_batches(self):
     # bbox of 1.png(19): 246, 77, 173, 223, size of 1.png: 741 x 350
-    self._test_bbox_batches(None, [246 / 741, 77 / 350, 173 / 741, 223 / 350])
+    self._test_bbox_batches(None, [246 * 100 / 741, 77 * 100 / 350, 173 * 100 / 741, 223 * 100 / 350])
 
   def test_bbox_batches_for_sep_bbox_0(self):
     # separated bboxes of 1.png(19): [[246, 77, 81, 219], [323, 81, 96, 219]], size of 1.png: 741 x 350
-    self._test_bbox_batches('sep_bbox_0', [246 / 741, 77 / 350, 81 / 741, 219 / 350])
+    self._test_bbox_batches('sep_bbox_0', [246 * 100 / 741, 77 * 100 / 350, 81 * 100 / 741, 219 * 100 / 350])
 
   def test_bbox_batches_for_number_0(self):
     test_helper.get_test_metadata()
     # separated bboxes of 25.png(601): [[60, 11, 24, 50], [87, 9, 24, 50], [113, 7, 21, 50]], size of 1.png: 190 x 75
-    self._test_bbox_batches('number_0', [87 / 190, 9 / 75, 24 / 190, 50 / 75], test_helper.test_data_file_number_0)
+    self._test_bbox_batches('number_0', [87 * 100 / 190, 9 * 100 / 75, 24 * 100 / 190, 50 * 100 / 75],
+                            test_helper.test_data_file_number_0)
 
   def _test_bbox_batches(self, target_bbox, first_expected_bbox, data_file_path=None):
     data_file_path = test_helper.get_test_metadata() if data_file_path is None else data_file_path
