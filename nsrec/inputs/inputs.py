@@ -196,11 +196,11 @@ def mnist_batches(batch_size, size, num_preprocess_threads=1, is_training=True, 
     batch_size=batch_size, capacity=batch_size * 3)
 
 
-def crop_to_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
-  top = max([round(bbox[1] - h * expand_rate), 0])
-  bottom = min([round(bbox[1] + bbox[3] + h * expand_rate), h])
-  left = max([round(bbox[0] - w * expand_rate), 0])
-  right = min([round(bbox[0] + bbox[2] + w * expand_rate), w])
+def crop_to_bbox(image, w, h, bbox, expand_rate=0.05, accept_min_rate=0.02):
+  top = max([round(bbox[1] - bbox[3] * expand_rate), 0])
+  bottom = min([round(bbox[1] + bbox[3] + bbox[3] * expand_rate), h])
+  left = max([round(bbox[0] - bbox[2] * expand_rate), 0])
+  right = min([round(bbox[0] + bbox[2] + bbox[2] * expand_rate), w])
   if bottom - top < accept_min_rate * h:
     top, bottom = 0, h
   if right - left < accept_min_rate * w:
@@ -208,10 +208,10 @@ def crop_to_bbox(image, w, h, bbox, expand_rate=0.1, accept_min_rate=0.05):
   return image[top:bottom, left:right, :]
 
 
-def read_img(img_file, bbox=None):
+def read_img(img_file, bbox=None, expand_rate=0.1):
   image = ndimage.imread(img_file) # image.shape: [height, width, channel]
   if bbox:
-    image = crop_to_bbox(image, image.shape[1], image.shape[0], bbox, 0, 0)
+    image = crop_to_bbox(image, image.shape[1], image.shape[0], bbox, expand_rate, 0)
   return image
 
 pixel_depth = 255.0

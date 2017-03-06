@@ -16,6 +16,9 @@ default_data_dir_path = os.path.join(current_dir, '../data/train')
 default_metadata_file_path = os.path.join(default_data_dir_path, 'metadata.pickle')
 tf.flags.DEFINE_string("metadata_file_path", default_metadata_file_path, "Metadata file path.")
 tf.flags.DEFINE_string("data_dir_path", default_data_dir_path, "Data file path.")
+tf.flags.DEFINE_float("bbox_expand", 0.0, "Expand bbox to add extra pixels, "
+                                          "set to 0.1 will reduce 8% of accuracy for training dataset"
+                                          "and 4% for extra dataset.")
 
 
 def inference(label_fn, bboxes=False, flags=None):
@@ -61,7 +64,7 @@ def inference(label_fn, bboxes=False, flags=None):
       label, metadata_bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
       real_labels.append(label_fn(label, metadata_bbox))
       bbox = (bboxes[i] if bboxes is not None else None) if bboxes is not False else metadata_bbox
-      data.append(inputs.read_img(file_paths[i], bbox))
+      data.append(inputs.read_img(file_paths[i], bbox, flags.bbox_expand))
 
     labels = model.infer(sess, data)
     for i in range(len(files)):
