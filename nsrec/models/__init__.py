@@ -1,4 +1,5 @@
 import tensorflow as tf
+from nsrec.models.yolo import YOLOTrainModel, YOLOInferModel, YOLOEvalModel
 from nsrec.models.nsr_model import CNNNSREvalModel
 from nsrec.models.nsr_length_model import CNNLengthTrainModel
 from nsrec.models.mnist_model import CNNMnistTrainModel
@@ -23,7 +24,10 @@ def create_model(flags, mode='train'):
     'all-eval': CNNNSREvalModel,
     'all-eval-rnn': RNNEvalModel,
     'all-inference': CNNNSRInferenceModel,
-    'all-to_export': CNNNSRToExportModel
+    'all-to_export': CNNNSRToExportModel,
+    'yolo-train': YOLOTrainModel,
+    'yolo-eval': YOLOEvalModel,
+    'yolo-inference': YOLOInferModel,
   }
 
   key = '%s-%s' % (flags.model_type, mode)
@@ -39,7 +43,7 @@ def create_model(flags, mode='train'):
     'gray_scale': flags.gray_scale
   }
 
-  if flags.model_type in ['length', 'all', 'bbox']:
+  if flags.model_type in ['length', 'all', 'bbox', 'yolo']:
     params_dict.update({'max_number_length': flags.max_number_length})
     if mode in ['train', 'eval']:
       params_dict.update({

@@ -59,3 +59,7 @@ def softmax_cross_entrophy_loss(logits, labels):
   for var in tf.trainable_variables():
     tf.summary.histogram(var.op.name, var)
   return total_loss
+
+
+def leaky_relu(features, name='leaky_relu'):
+  return tf.maximum(.1 * features, features, name=name)
