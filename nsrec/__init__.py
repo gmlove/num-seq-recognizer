@@ -16,6 +16,7 @@ tf.flags.DEFINE_string("net_type", "iclr_mnr",
                        "Which net to use: lenet, lenet_v1, lenet_v2, iclr_mnr, alexnet, or inception_v3")
 tf.flags.DEFINE_bool("rnn", False, "Whether to use rnn as the output layer")
 tf.flags.DEFINE_integer("max_number_length", 5, "Max number length.")
+tf.flags.DEFINE_float("threshold", 0.1, "Return eval/infer results which are higher than threshold.")
 tf.flags.DEFINE_bool("gray_scale", False, "If read image as gray scale image.")
 default_checkpoint_dir = os.path.join(current_dir, '../output/train')
 tf.flags.DEFINE_string("checkpoint_dir", default_checkpoint_dir,

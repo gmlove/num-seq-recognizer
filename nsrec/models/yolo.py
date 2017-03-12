@@ -57,7 +57,7 @@ def box_iou(a, b):
 
 
 def _extract_label(self, net_out):
-  B, threshold = self.max_number_length, 0.1
+  B, threshold = self.max_number_length, self.config.threshold
   net_out = net_out.reshape([H, W, B, -1])
 
   boxes = list()
@@ -97,8 +97,8 @@ def _extract_label(self, net_out):
       left = 0 if left < 0 else left
       left_labels.append({'left': left, 'label': max_indx})
 
-  sorted(left_labels, key=lambda ll: ll['left'])
-  return [ll['label'] for ll in left_labels]
+  left_labels = sorted(left_labels, key=lambda ll: ll['left'])
+  return [ll['label'] for ll in left_labels[:B]]
 
 
 def fix_label(label, max_number_length):
@@ -327,5 +327,5 @@ class YOLOInferModel:
     labels = []
     for net_out_i in net_out:
       labels.append(self.extract_label(net_out_i))
-    return [''.join(map(lambda x: str(x), label)) for label in labels]
+    return [(''.join(map(lambda x: str(x), label)), None) for label in labels]
 

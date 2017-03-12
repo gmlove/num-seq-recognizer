@@ -82,3 +82,29 @@ class CNNNSRInferModelConfig(CNNGeneralModelConfig):
       if kwargs.get(attr, None) is None:
         continue
       setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
+
+
+class YOLOModelConfig(CNNNSRModelConfig):
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    self.threshold = 0.1
+
+    for attr in ['threshold']:
+      if kwargs.get(attr, None) is None:
+        continue
+      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
+
+
+class YOLOInferModelConfig(CNNNSRInferModelConfig):
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    self.threshold = 0.1
+
+    for attr in ['threshold']:
+      if kwargs.get(attr, None) is None:
+        continue
+      setattr(self, attr, kwargs.get(attr, getattr(self, attr)))

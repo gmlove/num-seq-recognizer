@@ -1,16 +1,16 @@
 import tensorflow as tf
 import numpy as np
-from nsrec.models import CNNNSRInferModelConfig
+
+from nsrec.models.model_config import YOLOModelConfig, YOLOInferModelConfig
 from nsrec import test_helper
-from nsrec.models import CNNNSRModelConfig
 from nsrec.models.yolo import YOLOTrainModel, YOLOEvalModel, YOLOInferModel
 
 
-class YOLOTrainModelTest(tf.test.TestCase):
+class YOLOModelTest(tf.test.TestCase):
 
   def test_train_model(self):
     data_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
+    config = YOLOModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
 
     with self.test_session():
       model = YOLOTrainModel(config)
@@ -24,7 +24,7 @@ class YOLOTrainModelTest(tf.test.TestCase):
 
   def test_eval_model(self):
     data_file_path = test_helper.get_test_metadata()
-    config = CNNNSRModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
+    config = YOLOModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
 
     with self.test_session() as sess:
       model = YOLOEvalModel(config)
@@ -43,7 +43,7 @@ class YOLOTrainModelTest(tf.test.TestCase):
 
   def test_inference(self):
     with self.test_session() as sess:
-      model = YOLOInferModel(CNNNSRInferModelConfig(force_size=[416, 416]))
+      model = YOLOInferModel(YOLOInferModelConfig(force_size=[416, 416], threshold=0.05))
       model.build()
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
