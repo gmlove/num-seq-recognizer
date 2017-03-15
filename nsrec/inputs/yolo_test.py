@@ -14,7 +14,7 @@ class TestYOLO(tf.test.TestCase):
     third_loss_batch = self._calculate_loss_feed_batches(2)
     with self.test_session() as sess:
       data_batches, loss_feed_batches, _, _ = \
-        yolo.batches(data_file_path, 5, batch_size, size, num_preprocess_threads=1, channels=3)
+        yolo.batches(data_file_path, 5, batch_size, size, num_preprocess_threads=1, channels=3, is_training=False)
 
       self.assertEqual(data_batches.get_shape(), (2, 416, 416, 3))
       self.assertEqual(loss_feed_batches['probs'].get_shape(), (2, H * W, B, C))
@@ -77,6 +77,14 @@ class TestYOLO(tf.test.TestCase):
       coord.request_stop()
       coord.join(threads)
       sess.close()
+
+  def test_preprocess_image(self):
+    image = tf.zeros([200, 200, 3], dtype=tf.uint8)
+    bboxes = tf.constant([[120, 120, 30, 30], [150, 150, 40, 40], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    main_bbox = tf.constant([120, 120, 70, 70])
+    with self.test_session() as sess:
+      from nsrec.inputs.yolo import preprocess_image
+      print(sess.run(preprocess_image(image, main_bbox, bboxes, [400, 400], True)))
 
   def _test_data(self, index):
     wh = [[741, 350], [199, 83], [52, 23]]
