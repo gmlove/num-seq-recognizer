@@ -328,12 +328,11 @@ class YOLOInferModel:
 
   def infer(self, sess, data):
 
-    def to_coordinate_bbox(bbox, image_shape):
-      w, h = image_shape[1], image_shape[0]
-      return list(map(int, [bbox[0] * w, bbox[1] * h, bbox[2] * w, bbox[3] * h]))
-
     def to_coordinate_bboxes(label, image_shape):
-      return [to_coordinate_bbox(l['bbox'], image_shape) for l in label]
+      def to_coordinate_bbox(bbox):
+        w, h = image_shape[1], image_shape[0]
+        return list(map(int, [bbox[0] * w, bbox[1] * h, bbox[2] * w, bbox[3] * h]))
+      return [to_coordinate_bbox(l['bbox']) for l in label]
 
     input_data = [inputs.normalize_img(image, self.config.size) for image in data]
     net_out = sess.run(self.net_out, feed_dict={self.inputs: input_data})
