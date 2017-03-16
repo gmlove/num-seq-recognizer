@@ -151,8 +151,8 @@ class YOLOTrainModel:
   def _setup_net(self):
     with variable_scope([self.data_batches]) as vs:
       collection_name = end_points_collection_name(vs)
-    self.net_out, _ = cnn_layers(
-      self.data_batches, vs, collection_name, is_training=self.is_training)
+      self.net_out, _ = cnn_layers(
+        self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def _setup_loss(self):
     """
@@ -279,8 +279,8 @@ class YOLOEvalModel:
   def _setup_net(self):
     with variable_scope([self.data_batches]) as vs:
       collection_name = end_points_collection_name(vs)
-    self.net_out, _ = cnn_layers(
-      self.data_batches, vs, collection_name, is_training=self.is_training)
+      self.net_out, _ = cnn_layers(
+        self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def _setup_global_step(self):
     self.global_step = global_step_variable()
@@ -319,8 +319,8 @@ class YOLOInferModel:
   def _setup_net(self):
     with variable_scope([self.data_batches]) as vs:
       collection_name = end_points_collection_name(vs)
-    self.net_out, _ = cnn_layers(
-      self.data_batches, vs, collection_name, is_training=self.is_training)
+      self.net_out, _ = cnn_layers(
+        self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def build(self):
     self._setup_input()
