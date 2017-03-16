@@ -80,7 +80,7 @@ class TestYOLO(tf.test.TestCase):
 
   def test_preprocess_image(self):
     image = tf.zeros([200, 200, 3], dtype=tf.uint8)
-    bboxes = tf.constant([[120, 120, 30, 30], [150, 150, 40, 40], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    bboxes = tf.constant([[120, 120, 30, 30], [150, 150, 40, 40], [0, 0, 0, 0]])
     main_bbox = tf.constant([120, 120, 70, 70])
     with self.test_session() as sess:
       from nsrec.inputs.yolo import preprocess_image

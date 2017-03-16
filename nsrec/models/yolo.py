@@ -142,9 +142,10 @@ class YOLOTrainModel:
 
   def _setup_input(self):
     config = self.config
-    self.data_batches, self.loss_feed_batches, _, _ = \
-      yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
-                   num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
+    with ops.name_scope(None, 'Input') as sc:
+      self.data_batches, self.loss_feed_batches, _, _ = \
+        yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
+                     num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
   def _setup_net(self):
     with variable_scope([self.data_batches]) as vs:
@@ -160,7 +161,7 @@ class YOLOTrainModel:
     """
     number_losses = []
     net_out = self.net_out
-    with ops.name_scope(None, 'Loss') as sc:
+    with ops.name_scope(None, 'Loss'):
       sconf = object_scale = 5
       snoob = noobject_scale = 1
       sprob = class_scale = 1
@@ -268,9 +269,10 @@ class YOLOEvalModel:
 
   def _setup_input(self):
     config = self.config
-    self.data_batches, _, self.label_batches, self.label_bboxes_batches = \
-      yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
-                   num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
+    with ops.name_scope(None, 'Input') as sc:
+      self.data_batches, _, self.label_batches, self.label_bboxes_batches = \
+        yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
+                     num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
   def _setup_net(self):
     with variable_scope([self.data_batches]) as vs:
