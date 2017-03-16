@@ -115,14 +115,15 @@ def batches(data_file_path, max_number_length, batch_size, size,
 
   with ops.name_scope(None, 'image-preprocess'):
     image = tf.image.decode_png(image, channels)
+    origin_image_shape = tf.shape(image)
     image, bboxes = preprocess_image(image, main_bbox, bboxes, size, is_training)
     image_shape = tf.shape(image)
 
   with ops.name_scope(None, 'build-input-batch'):
     dequeued_data = []
     for i in range(num_preprocess_threads):
-      dequeued_data.append([image, image_shape, bboxes, label])
-    image_batch, image_shape_batch, bboxes_batch, label_batch = \
+      dequeued_data.append([image, origin_image_shape, image_shape, bboxes, label])
+    image_batch, origin_image_shape_batch, image_shape_batch, bboxes_batch, label_batch = \
       tf.train.batch_join(dequeued_data, batch_size=batch_size, capacity=batch_size * 3)
     label_bboxes_batch = bboxes_batch
 
@@ -195,4 +196,4 @@ def batches(data_file_path, max_number_length, batch_size, size,
       'botright': botright
     }
 
-  return image_batch, loss_feed, label_batch, label_bboxes_batch
+  return image_batch, origin_image_shape_batch, loss_feed, label_batch, label_bboxes_batch

@@ -95,13 +95,14 @@ def _extract_label(self, net_out):
     if max_prob > threshold:
       left = (b.x - b.w/2.)
       left = 0 if left < 0 else left
-      left_labels.append({'left': left, 'label': max_indx})
+      ltwh_bbox = [left, b.y - b.h/2, b.w, b.h]
+      left_labels.append({'left': left, 'label': max_indx, 'bbox': ltwh_bbox})
 
   left_labels = sorted(left_labels, key=lambda ll: ll['left'])
-  return [ll['label'] for ll in left_labels[:B]]
+  return left_labels[:B]
 
 
-def fix_label(label, max_number_length):
+def align_label(label, max_number_length):
   label = label[:max_number_length]
   if len(label) < max_number_length:
     label += [10] * (max_number_length - len(label))
@@ -143,7 +144,7 @@ class YOLOTrainModel:
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      self.data_batches, self.loss_feed_batches, _, _ = \
+      self.data_batches, _, self.loss_feed_batches, _, _ = \
         yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
                      num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
@@ -266,11 +267,12 @@ class YOLOEvalModel:
     self.data_batches = None
     self.label_batches = None
     self.label_bboxes_batches = None
+    self.image_shape = None
 
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      self.data_batches, _, self.label_batches, self.label_bboxes_batches = \
+      self.data_batches, self.image_shape, _, self.label_batches, self.label_bboxes_batches = \
         yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
                      num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
@@ -289,10 +291,10 @@ class YOLOEvalModel:
     self._setup_global_step()
 
   def correct_count(self, sess):
-    net_out, label_batches, _ = sess.run([self.net_out, self.label_batches, self.label_bboxes_batches])
+    net_out, image_shape, label_batches, _ = sess.run([self.net_out, self.image_shape, self.label_batches, self.label_bboxes_batches, ])
     labels = []
     for net_out_i in net_out:
-      labels.append(fix_label(self.extract_label(net_out_i), self.max_number_length))
+      labels.append(align_label([l['label'] for l in self.extract_label(net_out_i)], self.max_number_length))
     return sum([1 if all(label_batches[i] == labels[i]) else 0 for i in range(self.batch_size)])
 
 
@@ -308,6 +310,7 @@ class YOLOInferModel:
 
     self.inputs = None
     self.data_batches = None
+    self.image_shape = None
 
   def _setup_input(self):
     self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
@@ -324,10 +327,21 @@ class YOLOInferModel:
     self._setup_net()
 
   def infer(self, sess, data):
+
+    def to_coordinate_bbox(bbox, image_shape):
+      w, h = image_shape[1], image_shape[0]
+      return list(map(int, [bbox[0] * w, bbox[1] * h, bbox[2] * w, bbox[3] * h]))
+
+    def to_coordinate_bboxes(label, image_shape):
+      return [to_coordinate_bbox(l['bbox'], image_shape) for l in label]
+
     input_data = [inputs.normalize_img(image, self.config.size) for image in data]
     net_out = sess.run(self.net_out, feed_dict={self.inputs: input_data})
     labels = []
     for net_out_i in net_out:
       labels.append(self.extract_label(net_out_i))
-    return [(''.join(map(lambda x: str(x), label)), None) for label in labels]
+    join_label = lambda label: ''.join(map(lambda l: str(l['label']), label))
+    print(labels[0])
+    return [(join_label(labels[i]), to_coordinate_bboxes(labels[i], data[i].shape))
+            for i in range(len(labels))]
 

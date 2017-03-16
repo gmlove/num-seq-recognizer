@@ -13,7 +13,7 @@ class TestYOLO(tf.test.TestCase):
     second_loss_batch = self._calculate_loss_feed_batches(1)
     third_loss_batch = self._calculate_loss_feed_batches(2)
     with self.test_session() as sess:
-      data_batches, loss_feed_batches, _, _ = \
+      data_batches, _, loss_feed_batches, _, _ = \
         yolo.batches(data_file_path, 5, batch_size, size, num_preprocess_threads=1, channels=3, is_training=False)
 
       self.assertEqual(data_batches.get_shape(), (2, 416, 416, 3))
