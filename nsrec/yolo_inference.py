@@ -4,7 +4,7 @@ from inference_base import inference
 from nsrec import ArgumentsObj
 
 '''
-python3 nsrec/inference.py --checkpoint_dir=./output/train-yolo/ \
+python3 nsrec/yolo_inference.py --checkpoint_dir=./output/train-yolo/ \
   --input_files=train/1.png,train/2.png,train/3.png,train/4.png,train/5.png \
   --metadata_file_path=./data/train/metadata.pickle \
   --data_dir_path=./data --threshold=0.1

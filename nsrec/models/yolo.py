@@ -340,7 +340,6 @@ class YOLOInferModel:
     for net_out_i in net_out:
       labels.append(self.extract_label(net_out_i))
     join_label = lambda label: ''.join(map(lambda l: str(l['label']), label))
-    print(labels[0])
     return [(join_label(labels[i]), to_coordinate_bboxes(labels[i], data[i].shape))
             for i in range(len(labels))]
 

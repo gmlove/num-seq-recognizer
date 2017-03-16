@@ -56,19 +56,21 @@ def inference(label_fn, bboxes=False, flags=None):
     files = [s.strip() for s in flags.input_files.split(',')]
     metadata = pickle.loads(open(flags.metadata_file_path, 'rb').read())
     real_labels = []
+    sep_bboxes = []
 
     file_paths = [os.path.join(flags.data_dir_path, f) for f in files]
     data = []
     for i, f in enumerate(files):
       metadata_idx = metadata['filenames'].index(f)
       label, metadata_bbox = metadata['labels'][metadata_idx], metadata['bboxes'][metadata_idx]
+      sep_bboxes.append(metadata['sep_bboxes'][metadata_idx])
       real_labels.append(label_fn(label, metadata_bbox))
       bbox = (bboxes[i] if bboxes is not None else None) if bboxes is not False else metadata_bbox
       data.append(inputs.read_img(file_paths[i], bbox, flags.bbox_expand))
 
     labels = model.infer(sess, data)
     for i in range(len(files)):
-      tf.logging.info('inferred image %s[%s]: %s', files[i], real_labels[i], labels[i])
+      tf.logging.info('inferred image %s(%s, %s): %s', files[i], real_labels[i], sep_bboxes[i], labels[i])
     correct_inferences = filter(lambda i: real_labels[i] == labels[i][0], range(len(files)))
     correct_count = len(list(correct_inferences))
     tf.logging.info('correct count: %s, rate: %.4f', correct_count, correct_count / len(files))
