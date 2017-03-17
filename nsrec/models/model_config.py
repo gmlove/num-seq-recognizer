@@ -1,7 +1,7 @@
 import os
 
 import tensorflow as tf
-from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v2, lenet_v1, yolo
+from nsrec.nets import lenet, alexnet, inception_v3, iclr_mnr, lenet_v2, lenet_v1, yolo, simple_yolo
 
 
 class CNNGeneralModelConfig(object):
@@ -37,6 +37,7 @@ class CNNGeneralModelConfig(object):
       'lenet_v1': lenet_v1,
       'lenet_v2': lenet_v2,
       'yolo': yolo,
+      'simple_yolo': simple_yolo,
     }
     if self._final_cnn_net:
       return self._final_cnn_net

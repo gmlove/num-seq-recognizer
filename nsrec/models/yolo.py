@@ -4,9 +4,8 @@ import tensorflow as tf
 import numpy as np
 
 from nsrec.inputs import inputs
+from nsrec.inputs import yolo as yolo_inputs
 from tensorflow.python.framework import ops
-from nsrec.nets.yolo import cnn_layers, variable_scope, end_points_collection_name
-from nsrec.inputs import yolo
 from nsrec.utils.ops import global_step_variable, gray_scale
 
 
@@ -145,13 +144,13 @@ class YOLOTrainModel:
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, _, self.loss_feed_batches, _, _ = \
-        yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
+        yolo_inputs.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
                      num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
   def _setup_net(self):
-    with variable_scope([self.data_batches]) as vs:
-      collection_name = end_points_collection_name(vs)
-      self.net_out, _ = cnn_layers(
+    with self.cnn_net.variable_scope([self.data_batches]) as vs:
+      collection_name = self.cnn_net.end_points_collection_name(vs)
+      self.net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def _setup_loss(self):
@@ -273,13 +272,13 @@ class YOLOEvalModel:
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
       self.data_batches, self.image_shape, _, self.label_batches, self.label_bboxes_batches = \
-        yolo.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
+        yolo_inputs.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
                      num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
 
   def _setup_net(self):
-    with variable_scope([self.data_batches]) as vs:
-      collection_name = end_points_collection_name(vs)
-      self.net_out, _ = cnn_layers(
+    with self.cnn_net.variable_scope([self.data_batches]) as vs:
+      collection_name = self.cnn_net.end_points_collection_name(vs)
+      self.net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def _setup_global_step(self):
@@ -317,9 +316,9 @@ class YOLOInferModel:
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_net(self):
-    with variable_scope([self.data_batches]) as vs:
-      collection_name = end_points_collection_name(vs)
-      self.net_out, _ = cnn_layers(
+    with self.cnn_net.variable_scope([self.data_batches]) as vs:
+      collection_name = self.cnn_net.end_points_collection_name(vs)
+      self.net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
 
   def build(self):
