@@ -6,7 +6,7 @@ import numpy as np
 from nsrec.inputs import inputs
 from nsrec.inputs import yolo as yolo_inputs
 from tensorflow.python.framework import ops
-from nsrec.utils.ops import global_step_variable, gray_scale, assign_vars
+from nsrec.utils.ops import global_step_variable, gray_scale, assign_vars, all_model_variables_data
 
 
 def expit_tensor(x):
@@ -355,6 +355,9 @@ class YOLOInferModel:
     return [(join_label(labels[i]), to_coordinate_bboxes(labels[i], data[i].shape))
             for i in range(len(labels))]
 
+  def vars(self, sess):
+    return all_model_variables_data(sess)
+
 
 def build_export_output(net_out, H, W, max_number_length, C, threshold):
   B, threshold, sprs_output_box_count = max_number_length, threshold, 100
@@ -376,7 +379,7 @@ def build_export_output(net_out, H, W, max_number_length, C, threshold):
   with ops.name_scope(None, 'calc_boxes_scores'):
     boxes_scores = tf.sigmoid(boxes_scores)
     boxes_scores = tf.nn.softmax(classes_probs) * tf.expand_dims(boxes_scores, 3)
-    boxes_scores = boxes_scores * tf.cast(boxes_scores > threshold, tf.float64)
+    boxes_scores = boxes_scores * tf.cast(boxes_scores > threshold, tf.float32)
     boxes_scores = tf.cast(boxes_scores, tf.float32)
 
   with ops.name_scope(None, 'non_max_suppression'):
@@ -430,8 +433,10 @@ class YOLOToExportModel:
     self.inputs = None
     self.data_batches = None
 
-    self.output = None
     self.initializer = None
+    self.output_boxes = None
+    self.output_classes = None
+    self.output_classes_probs = None
 
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
@@ -446,7 +451,13 @@ class YOLOToExportModel:
       collection_name = self.cnn_net.end_points_collection_name(vs)
       net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
-      self.output = build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes)
+
+      _, self.output_boxes, self.output_classes, self.output_classes_probs = \
+          build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes, self.config.threshold)
+      self.output_boxes = tf.identity(self.output_boxes, 'output_boxes')
+      self.output_classes = tf.identity(self.output_classes, 'output_classes')
+      self.output_classes_probs = tf.identity(self.output_classes_probs, 'output_classes_probs')
+
       assign_ops = assign_vars(self._vars(), saved_vars_dict)
       self.initializer = tf.group(*assign_ops, name='initializer')
 

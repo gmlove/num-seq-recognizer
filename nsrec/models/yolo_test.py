@@ -3,7 +3,8 @@ import numpy as np
 
 from nsrec.models.model_config import YOLOModelConfig, YOLOInferModelConfig
 from nsrec import test_helper
-from nsrec.models.yolo import YOLOTrainModel, YOLOEvalModel, YOLOInferModel, extract_label_as_array, build_export_output
+from nsrec.models.yolo import YOLOTrainModel, YOLOEvalModel, YOLOInferModel, \
+  extract_label_as_array, build_export_output, YOLOToExportModel
 
 
 class YOLOModelTest(tf.test.TestCase):
@@ -40,15 +41,37 @@ class YOLOModelTest(tf.test.TestCase):
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=10)
 
+  def create_yolo_infer_config(self):
+    return YOLOInferModelConfig(force_size=[104, 104], net_type='simple_yolo', threshold=0.05)
+
   def test_inference(self):
     with self.test_session() as sess:
-      model = YOLOInferModel(YOLOInferModelConfig(force_size=[104, 104], net_type='simple_yolo', threshold=0.05))
+      model = YOLOInferModel(self.create_yolo_infer_config())
       model.build()
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
       labels = model.infer(sess, [np.ones((100, 100, 3)), np.ones((100, 100, 3))])
       print('infered labels for data: %s' % (labels, ))
+
+  def test_to_export(self):
+    with self.test_session(tf.Graph()) as sess:
+      model = YOLOInferModel(self.create_yolo_infer_config())
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      model_vars = model.vars(sess)
+      print(list(model_vars.keys()))
+
+    with self.test_session(tf.Graph()) as sess:
+      model = YOLOToExportModel(self.create_yolo_infer_config())
+      model.build(model_vars)
+      sess.run(model.initializer)
+      output_boxes, output_classes, output_classes_probs = \
+          sess.run([model.output_boxes, model.output_classes, model.output_classes_probs],
+                   feed_dict={model.inputs: np.ones((1, 104, 104, 3))})
+      print(output_boxes)
+      print(output_classes)
+      print(output_classes_probs)
 
   def test_build_export_output(self):
     H, W, B, C, threshold = 2, 2, 5, 2, 0.1

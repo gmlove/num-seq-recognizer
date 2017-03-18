@@ -1,5 +1,5 @@
 import tensorflow as tf
-from nsrec.models.yolo import YOLOTrainModel, YOLOInferModel, YOLOEvalModel
+from nsrec.models.yolo import YOLOTrainModel, YOLOInferModel, YOLOEvalModel, YOLOToExportModel
 from nsrec.models.nsr_model import CNNNSREvalModel
 from nsrec.models.nsr_length_model import CNNLengthTrainModel
 from nsrec.models.mnist_model import CNNMnistTrainModel
@@ -28,7 +28,8 @@ def create_model(flags, mode='train'):
     'all-to_export': CNNNSRToExportModel,
     'yolo-train': (YOLOTrainModel, YOLOModelConfig),
     'yolo-eval': (YOLOEvalModel, YOLOModelConfig),
-    'yolo-inference': (YOLOInferModel, YOLOInferModelConfig)
+    'yolo-inference': (YOLOInferModel, YOLOInferModelConfig),
+    'yolo-to_export': (YOLOToExportModel, YOLOInferModelConfig)
   }
 
   key = '%s-%s' % (flags.model_type, mode)
