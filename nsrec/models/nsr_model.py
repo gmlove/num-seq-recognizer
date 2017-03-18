@@ -12,6 +12,8 @@ from nsrec.utils.np_ops import correct_count
 from nsrec.utils.ops import all_model_variables_data, assign_vars, softmax_accuracy, global_step_variable, \
   gray_scale, stack_output
 
+OUTPUT = 'output'
+
 
 class CNNNSRTrainModel:
 
@@ -193,6 +195,8 @@ class CNNNSRInferenceModel:
 
 class CNNNSRToExportModel:
 
+  OUTPUT_NODE_NAME = 'output'
+
   def __init__(self, config):
     self.config = config
     self.cnn_net = config.cnn_net
@@ -218,7 +222,7 @@ class CNNNSRToExportModel:
       self.cnn_net, self.data_batches, self.config.max_number_length, self.is_training)
 
     self.output = stack_output(
-      self.max_number_length, self.length_output, self.numbers_output, name='output')
+      self.max_number_length, self.length_output, self.numbers_output, name=CNNNSRToExportModel.OUTPUT_NODE_NAME)
     assign_ops = assign_vars(self._vars(), saved_vars_dict)
     self.initializer = tf.group(*assign_ops, name='initializer')
 

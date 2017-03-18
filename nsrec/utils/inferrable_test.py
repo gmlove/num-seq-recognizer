@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
+from nsrec.models import YOLOInferModel, YOLOInferModelConfig, YOLOToExportModel
 from nsrec.inputs import inputs
 from nsrec.models import CNNBBoxInferModel, CNNBBoxToExportModel, CNNNSRInferModelConfig
 
@@ -21,6 +22,38 @@ class InferrableTest(tf.test.TestCase):
     input_data = inputs.normalize_img(input_data, [lenet_v2.image_width, lenet_v2.image_height])
     pbs = inferrable.infer(np.array([input_data]))
     print(pbs)
+
+  def test_yolo_infer(self):
+    from nsrec.nets import simple_yolo
+    self._create_yolo_test_graph()
+    inferrable = Inferrable(test_helper.test_graph_file, None,
+                            YOLOToExportModel.INPUT_NODE_NAME, YOLOToExportModel.OUTPUT_NODE_NAME)
+    input_data = inputs.read_img(os.path.join(test_helper.train_data_dir_path, '1.png'))
+    input_data = inputs.normalize_img(input_data, [simple_yolo.image_width, simple_yolo.image_height])
+    pbs = inferrable.infer(np.array([input_data]))
+    print(pbs)
+
+  def _create_yolo_test_graph(self):
+    config = YOLOInferModelConfig(net_type='simple_yolo', threshold=0.05)
+
+    with self.test_session(tf.Graph()) as sess:
+      model = YOLOInferModel(config)
+      model.build()
+      sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+      model_vars = model.vars(sess)
+
+    graph = tf.Graph()
+    with self.test_session(graph) as sess:
+      model = YOLOToExportModel(config)
+      model.build(model_vars)
+      sess.run(model.initializer)
+      graph.finalize()
+      graph_def = graph.as_graph_def()
+      graph_def = tf.graph_util.convert_variables_to_constants(
+        sess, graph_def, [YOLOToExportModel.OUTPUT_NODE_NAME])
+      print(tf.train.write_graph(graph_def,
+                                 os.path.dirname(test_helper.test_graph_file),
+                                 os.path.basename(test_helper.test_graph_file), as_text=False))
 
   def _create_test_graph(self):
     config = CNNNSRInferModelConfig(net_type='lenet_v2')

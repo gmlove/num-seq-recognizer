@@ -424,6 +424,9 @@ def build_export_output(net_out, H, W, max_number_length, C, threshold):
 
 class YOLOToExportModel:
 
+  INPUT_NODE_NAME = 'input'
+  OUTPUT_NODE_NAME = 'output'
+
   def __init__(self, config):
     self.config = config
     self.cnn_net = config.cnn_net
@@ -439,12 +442,16 @@ class YOLOToExportModel:
     self.output_classes = None
     self.output_classes_probs = None
 
+  def output_names(self):
+    return [YOLOToExportModel.OUTPUT_NODE_NAME]
+
   def _vars(self):
     coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
     return dict(zip([v.name for v in coll], coll))
 
   def _setup_input(self):
-    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3),
+                                 name=YOLOToExportModel.INPUT_NODE_NAME)
     self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
 
   def _setup_net(self, saved_vars_dict):
@@ -452,16 +459,17 @@ class YOLOToExportModel:
       collection_name = self.cnn_net.end_points_collection_name(vs)
       net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
-      self.output = tf.identity(net_out, name='output')
 
-      _, self.output_boxes, self.output_classes, self.output_classes_probs = \
-          build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes, self.config.threshold)
-      self.output_boxes = tf.identity(self.output_boxes, 'output_boxes')
-      self.output_classes = tf.identity(self.output_classes, 'output_classes')
-      self.output_classes_probs = tf.identity(self.output_classes_probs, 'output_classes_probs')
+    self.output = tf.identity(net_out, name=YOLOToExportModel.OUTPUT_NODE_NAME)
 
-      assign_ops = assign_vars(self._vars(), saved_vars_dict)
-      self.initializer = tf.group(*assign_ops, name='initializer')
+    _, self.output_boxes, self.output_classes, self.output_classes_probs = \
+        build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes, self.config.threshold)
+    self.output_boxes = tf.identity(self.output_boxes, name='output_boxes')
+    self.output_classes = tf.identity(self.output_classes, 'output_classes')
+    self.output_classes_probs = tf.identity(self.output_classes_probs, 'output_classes_probs')
+
+    assign_ops = assign_vars(self._vars(), saved_vars_dict)
+    self.initializer = tf.group(*assign_ops, name='initializer')
 
   def build(self, saved_vars_dict):
     self._setup_input()

@@ -12,11 +12,13 @@ class Inferrable(object):
     with self.graph.as_default():
       tf.import_graph_def(graph_def)
 
-    self.initializer = self.graph.get_operation_by_name('import/' + initializer_node_name)
+    if initializer_node_name:
+      self.initializer = self.graph.get_operation_by_name('import/' + initializer_node_name)
     self.input = self.graph.get_tensor_by_name('import/%s:0' % input_node_name)
     self.output = self.graph.get_tensor_by_name('import/%s:0' % output_node_name)
 
-    self.session.run(self.initializer)
+    if initializer_node_name:
+      self.session.run(self.initializer)
 
   def infer(self, input_data):
     return self.session.run(self.output, feed_dict={self.input: input_data})

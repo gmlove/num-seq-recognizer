@@ -34,13 +34,17 @@ def export(flags):
     model.build(model_vars)
 
   with tf.Session(graph=g) as sess:
+    graph_def = sess.graph_def
     if flags.finalize_graph:
       sess.run(model.initializer)
       g.finalize()
+      graph_def = g.as_graph_def()
+      graph_def = tf.graph_util.convert_variables_to_constants(
+        sess, graph_def, model.output_names())
 
     log_dir = './output/export'
     if not tf.gfile.IsDirectory(log_dir):
       tf.logging.info("Creating log directory: %s", log_dir)
     tf.gfile.MakeDirs(log_dir)
 
-    tf.train.write_graph(sess.graph_def, log_dir, flags.output_file_name, as_text=False)
+    tf.train.write_graph(graph_def, log_dir, flags.output_file_name, as_text=False)

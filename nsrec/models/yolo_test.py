@@ -42,7 +42,7 @@ class YOLOModelTest(tf.test.TestCase):
       coord.join(threads, stop_grace_period_secs=10)
 
   def create_yolo_infer_config(self):
-    return YOLOInferModelConfig(force_size=[104, 104], net_type='simple_yolo', threshold=0.05)
+    return YOLOInferModelConfig(net_type='simple_yolo', threshold=0.05)
 
   def test_inference(self):
     with self.test_session() as sess:

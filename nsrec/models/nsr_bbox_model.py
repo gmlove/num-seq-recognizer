@@ -97,6 +97,9 @@ class CNNBBoxToExportModel:
   OUTPUT_NODE_NAME = 'output-bbox'
   INPUT_NODE_NAME = 'input-bbox'
 
+  def output_names(self):
+    return [CNNBBoxToExportModel.OUTPUT_NODE_NAME]
+
   def __init__(self, config):
     self.config = config
     self.cnn_net = config.cnn_net
