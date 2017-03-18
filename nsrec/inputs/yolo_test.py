@@ -13,8 +13,9 @@ class TestYOLO(tf.test.TestCase):
     second_loss_batch = self._calculate_loss_feed_batches(1)
     third_loss_batch = self._calculate_loss_feed_batches(2)
     with self.test_session() as sess:
-      data_batches, _, loss_feed_batches, _, _ = \
+      data_batches, origin_image_shape_batch, image_shape_batch, label_batch, label_bboxes_batch = \
         yolo.batches(data_file_path, 5, batch_size, size, num_preprocess_threads=1, channels=3, is_training=False)
+      loss_feed_batches = yolo.prepare_for_loss(B, batch_size, label_bboxes_batch, image_shape_batch, label_batch)
 
       self.assertEqual(data_batches.get_shape(), (2, 416, 416, 3))
       self.assertEqual(loss_feed_batches['probs'].get_shape(), (2, H * W, B, C))
@@ -156,4 +157,3 @@ class TestYOLO(tf.test.TestCase):
     print(['%s: %s' % (k, v.shape) for k, v in loss_feed_val.items()])
 
     return loss_feed_val
-

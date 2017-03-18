@@ -9,11 +9,8 @@ from nsrec.models.yolo import YOLOTrainModel, YOLOEvalModel, YOLOInferModel
 class YOLOModelTest(tf.test.TestCase):
 
   def test_train_model(self):
-    data_file_path = test_helper.get_test_metadata()
-    config = YOLOModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
-
     with self.test_session():
-      model = YOLOTrainModel(config)
+      model = YOLOTrainModel(self.create_test_config())
       model.build()
 
       train_op = tf.contrib.layers.optimize_loss(
@@ -22,12 +19,14 @@ class YOLOModelTest(tf.test.TestCase):
       tf.contrib.slim.learning.train(
         train_op, None, number_of_steps=2)
 
-  def test_eval_model(self):
+  def create_test_config(self):
     data_file_path = test_helper.get_test_metadata()
-    config = YOLOModelConfig(data_file_path=data_file_path, batch_size=2, force_size=[416, 416])
+    config = YOLOModelConfig(data_file_path=data_file_path, net_type='yolo', batch_size=2)
+    return config
 
+  def test_eval_model(self):
     with self.test_session() as sess:
-      model = YOLOEvalModel(config)
+      model = YOLOEvalModel(self.create_test_config())
       model.build()
 
       sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])

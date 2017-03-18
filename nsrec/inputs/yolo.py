@@ -13,6 +13,8 @@ def preprocess_image(image, main_bbox, bboxes, final_size, is_training):
     bboxes = to_yx_yx_bboxes(image, bboxes)
     main_bbox = to_yx_yx_bboxes(image, tf.expand_dims(main_bbox, 0))
 
+    tf.summary.image('original_image', tf.expand_dims(tf.cast(image * 255, tf.uint8), 0))
+
     image = image_preprocessing.distort_color(image)
 
     tf.summary.image('images_with_distorted_color', tf.expand_dims(tf.cast(image * 255, tf.uint8), 0))
@@ -127,6 +129,10 @@ def batches(data_file_path, max_number_length, batch_size, size,
       tf.train.batch_join(dequeued_data, batch_size=batch_size, capacity=batch_size * 3)
     label_bboxes_batch = bboxes_batch
 
+  return image_batch, origin_image_shape_batch, image_shape_batch, label_batch, label_bboxes_batch
+
+
+def prepare_for_loss(max_number_length, batch_size, bboxes_batch, image_shape_batch, label_batch):
   with ops.name_scope(None, 'prepare-for-loss'):
     H, W, C, B = 13, 13, 10, max_number_length
     h, w = image_shape_batch[:, 0], image_shape_batch[:, 1]
@@ -162,13 +168,14 @@ def batches(data_file_path, max_number_length, batch_size, size,
       with tf.control_dependencies([probs_init, confs_init, coord_init, proid_init, prear_init]):
         assign_ops = []
         for i in range(batch_size):
-          indices_i = indices[i] # [5]
+          indices_i = indices[i]  # [5]
           labels_i = label_batch[i]
           bboxes_i = bboxes_batch[i]
           for j in range(B):
             to_assign = tf.one_hot(labels_i[j], C, dtype=tf.float32)
             probs_i_j = probs[i, indices_i[j]].assign([to_assign] * B)
-            proid_i_j = tf.cond(bboxes_i[j, 3] < 1e-6, lambda: proid, lambda: proid[i, indices_i[j]].assign([[1.] * C] * B))
+            proid_i_j = tf.cond(bboxes_i[j, 3] < 1e-6, lambda: proid,
+                                lambda: proid[i, indices_i[j]].assign([[1.] * C] * B))
             coord_i_j = coord[i, indices_i[j]].assign([bboxes_i[j]] * B)
             prear_i_j = prear[i, indices_i[j]].assign([
               bboxes_i[j, 0] - bboxes_i[j, 2] ** 2 * .5 * W,
@@ -195,5 +202,4 @@ def batches(data_file_path, max_number_length, batch_size, size,
       'areas': areas, 'upleft': upleft,
       'botright': botright
     }
-
-  return image_batch, origin_image_shape_batch, loss_feed, label_batch, label_bboxes_batch
+  return loss_feed

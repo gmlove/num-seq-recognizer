@@ -6,7 +6,7 @@ import numpy as np
 from nsrec.inputs import inputs
 from nsrec.inputs import yolo as yolo_inputs
 from tensorflow.python.framework import ops
-from nsrec.utils.ops import global_step_variable, gray_scale
+from nsrec.utils.ops import global_step_variable, gray_scale, assign_vars
 
 
 def expit_tensor(x):
@@ -143,9 +143,11 @@ class YOLOTrainModel:
   def _setup_input(self):
     config = self.config
     with ops.name_scope(None, 'Input') as sc:
-      self.data_batches, _, self.loss_feed_batches, _, _ = \
+      self.data_batches, origin_image_shape_batch, image_shape_batch, label_batch, label_bboxes_batch = \
         yolo_inputs.batches(config.data_file_path, self.max_number_length, config.batch_size, config.size,
                      num_preprocess_threads=config.num_preprocess_threads, channels=config.channels)
+      self.loss_feed_batches = yolo_inputs.prepare_for_loss(
+        self.max_number_length, config.batch_size, label_bboxes_batch, image_shape_batch, label_batch)
 
   def _setup_net(self):
     with self.cnn_net.variable_scope([self.data_batches]) as vs:
