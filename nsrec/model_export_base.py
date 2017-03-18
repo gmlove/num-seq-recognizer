@@ -1,6 +1,9 @@
 import tensorflow as tf
 from models import create_model
 
+tf.flags.DEFINE_boolean("finalize_graph", False,
+                        "If finalize the exported graph. If true, initializer will not be available.")
+
 
 def export(flags):
   # Build the inference graph.
@@ -31,6 +34,10 @@ def export(flags):
     model.build(model_vars)
 
   with tf.Session(graph=g) as sess:
+    if flags.finalize_graph:
+      sess.run(model.initializer)
+      g.finalize()
+
     log_dir = './output/export'
     if not tf.gfile.IsDirectory(log_dir):
       tf.logging.info("Creating log directory: %s", log_dir)

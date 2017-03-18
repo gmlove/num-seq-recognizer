@@ -434,6 +434,7 @@ class YOLOToExportModel:
     self.data_batches = None
 
     self.initializer = None
+    self.output = None
     self.output_boxes = None
     self.output_classes = None
     self.output_classes_probs = None
@@ -451,6 +452,7 @@ class YOLOToExportModel:
       collection_name = self.cnn_net.end_points_collection_name(vs)
       net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
+      self.output = tf.identity(net_out, name='output')
 
       _, self.output_boxes, self.output_classes, self.output_classes_probs = \
           build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes, self.config.threshold)
