@@ -91,6 +91,7 @@ class YOLOModelConfig(CNNNSRModelConfig):
     super().__init__(**kwargs)
 
     self.threshold = 0.1
+    self.num_classes = 10
 
     for attr in ['threshold']:
       if kwargs.get(attr, None) is None:
@@ -104,6 +105,7 @@ class YOLOInferModelConfig(CNNNSRInferModelConfig):
     super().__init__(**kwargs)
 
     self.threshold = 0.1
+    self.num_classes = 10
 
     for attr in ['threshold']:
       if kwargs.get(attr, None) is None:

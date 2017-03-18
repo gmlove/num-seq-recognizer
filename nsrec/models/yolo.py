@@ -55,10 +55,19 @@ def box_iou(a, b):
   return box_intersection(a, b) / box_union(a, b)
 
 
-def _extract_label(self, net_out):
-  B, threshold = self.max_number_length, self.config.threshold
-  net_out = net_out.reshape([H, W, B, -1])
+def extract_label(net_out, max_number_length, num_classes, threshold):
+  B, C, threshold = max_number_length, num_classes, threshold
+  lefts, ltwh_bboxes, max_indices, _ = extract_label_as_array(net_out, H, W, B, C, threshold)
 
+  left_labels = []
+  for i in range(len(lefts)):
+    left_labels.append({'left': lefts[i], 'label': max_indices[i], 'bbox': ltwh_bboxes[i]})
+
+  return left_labels
+
+
+def extract_label_as_array(net_out, H, W, B, C, threshold):
+  net_out = net_out.reshape([H, W, B, -1])
   boxes = list()
   for row in range(H):
     for col in range(W):
@@ -87,18 +96,22 @@ def _extract_label(self, net_out):
         boxj = boxes[j]
         if box_iou(boxi, boxj) >= .4:
           boxes[j].probs[c] = 0.
-  left_labels = []
+  lefts, ltwh_bboxes, selected_classes, selected_classes_probs = [], [], [], []
   for b in boxes:
     max_indx = np.argmax(b.probs)
     max_prob = b.probs[max_indx]
     if max_prob > threshold:
-      left = (b.x - b.w/2.)
+      selected_classes.append(max_indx)
+      selected_classes_probs.append(max_prob)
+      left = (b.x - b.w / 2.)
       left = 0 if left < 0 else left
-      ltwh_bbox = [left, b.y - b.h/2, b.w, b.h]
-      left_labels.append({'left': left, 'label': max_indx, 'bbox': ltwh_bbox})
-
-  left_labels = sorted(left_labels, key=lambda ll: ll['left'])
-  return left_labels[:B]
+      lefts.append(left)
+      ltwh_bbox = [left, b.y - b.h / 2, b.w, b.h]
+      ltwh_bboxes.append(ltwh_bbox)
+  indices = np.argsort(np.array(lefts))
+  lefts, sorted_classes, sorted_classes_probs, ltwh_bboxes = \
+    [np.array(data)[indices] for data in [lefts, selected_classes, selected_classes_probs, ltwh_bboxes]]
+  return lefts, ltwh_bboxes, sorted_classes, sorted_classes_probs
 
 
 def align_label(label, max_number_length):
@@ -253,8 +266,6 @@ class YOLOTrainModel:
 
 class YOLOEvalModel:
 
-  extract_label = _extract_label
-
   def __init__(self, config):
     self.config = config
     self.cnn_net = config.cnn_net
@@ -292,16 +303,16 @@ class YOLOEvalModel:
     self._setup_global_step()
 
   def correct_count(self, sess):
-    net_out, image_shape, label_batches, _ = sess.run([self.net_out, self.image_shape, self.label_batches, self.label_bboxes_batches, ])
+    net_out, image_shape, label_batches, _ = sess.run(
+      [self.net_out, self.image_shape, self.label_batches, self.label_bboxes_batches])
     labels = []
     for net_out_i in net_out:
-      labels.append(align_label([l['label'] for l in self.extract_label(net_out_i)], self.max_number_length))
+      label = extract_label(net_out_i, self.max_number_length, self.config.num_classes, self.config.threshold)
+      labels.append(align_label([l['label'] for l in label], self.max_number_length))
     return sum([1 if all(label_batches[i] == labels[i]) else 0 for i in range(self.batch_size)])
 
 
 class YOLOInferModel:
-
-  extract_label = _extract_label
 
   def __init__(self, config):
     self.config = config
@@ -339,8 +350,106 @@ class YOLOInferModel:
     net_out = sess.run(self.net_out, feed_dict={self.inputs: input_data})
     labels = []
     for net_out_i in net_out:
-      labels.append(self.extract_label(net_out_i))
+      labels.append(extract_label(net_out_i, self.max_number_length, self.config.num_classes, self.config.threshold))
     join_label = lambda label: ''.join(map(lambda l: str(l['label']), label))
     return [(join_label(labels[i]), to_coordinate_bboxes(labels[i], data[i].shape))
             for i in range(len(labels))]
 
+
+def build_export_output(net_out, H, W, max_number_length, C, threshold):
+  B, threshold, sprs_output_box_count = max_number_length, threshold, 100
+  net_out = tf.reshape(net_out, [H, W, B, -1])
+  boxes, boxes_scores, classes_probs = net_out[:, :, :, :4], net_out[:, :, :, 4], net_out[:, :, :, 5:]
+  row = np.concatenate([np.ones([1, W, B], dtype=np.float32) * i for i in range(H)], axis=0)
+  col = np.concatenate([np.ones([H, 1, B], dtype=np.float32) * i for i in range(W)], axis=1)
+  anchors_w = np.concatenate([np.ones([H, W, 1], dtype=np.float32) * anchors[2 * i + 0] for i in range(B)], axis=2)
+  anchors_h = np.concatenate([np.ones([H, W, 1], dtype=np.float32) * anchors[2 * i + 1] for i in range(B)], axis=2)
+  with ops.name_scope(None, 'calc_boxes_coordinates'):
+    boxes = tf.concat([
+      tf.expand_dims((tf.sigmoid(boxes[:, :, :, 0]) + col) / W, 3),
+      tf.expand_dims((tf.sigmoid(boxes[:, :, :, 1]) + row) / H, 3),
+      tf.expand_dims(tf.exp(boxes[:, :, :, 2]) * anchors_w / W, 3),
+      tf.expand_dims(tf.exp(boxes[:, :, :, 3]) * anchors_h / H, 3),
+    ], axis=3)
+    boxes = tf.cast(boxes, tf.float32)
+
+  with ops.name_scope(None, 'calc_boxes_scores'):
+    boxes_scores = tf.sigmoid(boxes_scores)
+    boxes_scores = tf.nn.softmax(classes_probs) * tf.expand_dims(boxes_scores, 3)
+    boxes_scores = boxes_scores * tf.cast(boxes_scores > threshold, tf.float64)
+    boxes_scores = tf.cast(boxes_scores, tf.float32)
+
+  with ops.name_scope(None, 'non_max_suppression'):
+    boxes = tf.reshape(boxes, [H * W * B, 4])
+    sprs_boxes, sprs_boxes_scores = [], []
+    for i in range(C):
+      box_scores = tf.reshape(boxes_scores[:, :, :, i], [H * W * B])
+      sprs_boxes_indices = tf.image.non_max_suppression(boxes, box_scores, sprs_output_box_count, iou_threshold=0.4)
+      box_scores = box_scores * tf.scatter_nd(
+        tf.reshape(sprs_boxes_indices, [-1, 1]),
+        tf.ones(tf.shape(sprs_boxes_indices), dtype=tf.float32), [H * W * B])
+      sprs_boxes_scores.append(tf.reshape(box_scores, [H * W * B, 1]))
+
+  with ops.name_scope(None, 'select_boxes'):
+    sprs_boxes_scores = tf.concat(sprs_boxes_scores, axis=1)
+    classes = tf.argmax(sprs_boxes_scores, axis=1)
+    classes_probs = tf.reduce_max(sprs_boxes_scores, axis=1)
+
+    selected_box_mask = classes_probs > threshold
+
+    selected_classes = tf.boolean_mask(classes, selected_box_mask)
+    selected_boxes = tf.boolean_mask(boxes, selected_box_mask)
+    selected_classes_probs = tf.boolean_mask(classes_probs, selected_box_mask)
+    lefts = selected_boxes[:, 0] - selected_boxes[:, 2] / 2
+    lefts = tf.where(lefts < 0, tf.zeros(tf.shape(lefts)), lefts)
+    selected_boxes = tf.concat([
+      tf.expand_dims(lefts, 1),
+      tf.expand_dims(selected_boxes[:, 1] - selected_boxes[:, 3] / 2, 1),
+      tf.expand_dims(selected_boxes[:, 2], 1),
+      tf.expand_dims(selected_boxes[:, 3], 1),
+    ], axis=1)
+    selected_lefts = selected_boxes[:, 0]
+
+  with ops.name_scope(None, 'sort_boxes'):
+    sorted_lefts, sorted_lefts_indices = tf.nn.top_k(selected_lefts * -1, tf.shape(selected_lefts)[0])
+
+    sorted_classes = tf.gather(selected_classes, sorted_lefts_indices)
+    sorted_boxes = tf.gather(selected_boxes, sorted_lefts_indices)
+    sorted_classes_probs = tf.gather(selected_classes_probs, sorted_lefts_indices)
+  return sorted_lefts * -1, sorted_boxes, sorted_classes, sorted_classes_probs
+
+
+class YOLOToExportModel:
+
+  def __init__(self, config):
+    self.config = config
+    self.cnn_net = config.cnn_net
+    self.max_number_length = config.max_number_length
+    self.is_training = False
+
+    self.inputs = None
+    self.data_batches = None
+
+    self.output = None
+    self.initializer = None
+
+  def _vars(self):
+    coll = tf.get_collection(ops.GraphKeys.MODEL_VARIABLES)
+    return dict(zip([v.name for v in coll], coll))
+
+  def _setup_input(self):
+    self.inputs = tf.placeholder(tf.float32, (None, self.config.size[0], self.config.size[1], 3), name='input')
+    self.data_batches = gray_scale(self.inputs) if self.config.gray_scale else self.inputs
+
+  def _setup_net(self, saved_vars_dict):
+    with self.cnn_net.variable_scope([self.data_batches]) as vs:
+      collection_name = self.cnn_net.end_points_collection_name(vs)
+      net_out, _ = self.cnn_net.cnn_layers(
+        self.data_batches, vs, collection_name, is_training=self.is_training)
+      self.output = build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes)
+      assign_ops = assign_vars(self._vars(), saved_vars_dict)
+      self.initializer = tf.group(*assign_ops, name='initializer')
+
+  def build(self, saved_vars_dict):
+    self._setup_input()
+    self._setup_net(saved_vars_dict)
