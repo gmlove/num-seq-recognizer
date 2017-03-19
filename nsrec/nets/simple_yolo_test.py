@@ -18,6 +18,17 @@ class SimpleYoloTest(BaseNetTest):
           net: (batch_size, 13, 13, 75),
         })
 
+  def test_replace_extract_image_patches(self):
+    with self.test_session() as sess:
+      net = tf.random_uniform([2, 26, 26, 128])
+      net1 = tf.extract_image_patches(
+        net, [1, 2, 2, 1], [1, 2, 2, 1], [1, 1, 1, 1], 'VALID')
+      print(net.get_shape().as_list())
+      from tensorflow.contrib import slim
+      net2 = slim.conv2d(net, 512, [1, 1], 2)
+      print(net.get_shape().as_list())
+
+
 
 if __name__ == '__main__':
   tf.test.main()

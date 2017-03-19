@@ -460,7 +460,8 @@ class YOLOToExportModel:
       net_out, _ = self.cnn_net.cnn_layers(
         self.data_batches, vs, collection_name, is_training=self.is_training)
 
-    self.output = tf.identity(net_out, name=YOLOToExportModel.OUTPUT_NODE_NAME)
+    self.output = tf.reshape(net_out, [H * W * (self.config.num_classes + 5) * self.max_number_length],
+                             name=YOLOToExportModel.OUTPUT_NODE_NAME)
 
     _, self.output_boxes, self.output_classes, self.output_classes_probs = \
         build_export_output(net_out, H, W, self.max_number_length, self.config.num_classes, self.config.threshold)

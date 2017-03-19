@@ -31,6 +31,7 @@ class InferrableTest(tf.test.TestCase):
     input_data = inputs.read_img(os.path.join(test_helper.train_data_dir_path, '1.png'))
     input_data = inputs.normalize_img(input_data, [simple_yolo.image_width, simple_yolo.image_height])
     pbs = inferrable.infer(np.array([input_data]))
+    print(pbs.shape)
     print(pbs)
 
   def _create_yolo_test_graph(self):
